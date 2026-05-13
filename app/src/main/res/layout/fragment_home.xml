@@ -15,26 +15,34 @@
         android:textSize="20sp"
         android:paddingBottom="16dp" />
 
-    <TableLayout
-        android:id="@+id/measurementTable"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:stretchColumns="0,1">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-        <TableRow>
+        <TableLayout
+            android:id="@+id/measurementTable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stretchColumns="0,1">
 
-            <TextView
-                android:text="Time"
-                android:textStyle="bold"
-                android:padding="8dp" />
+            <TableRow>
 
-            <TextView
-                android:text="dB SPL"
-                android:textStyle="bold"
-                android:padding="8dp" />
+                <TextView
+                    android:text="Time"
+                    android:textStyle="bold"
+                    android:padding="8dp" />
 
-        </TableRow>
+                <TextView
+                    android:text="dB SPL"
+                    android:textStyle="bold"
+                    android:padding="8dp" />
 
-    </TableLayout>
+            </TableRow>
+
+        </TableLayout>
+
+    </ScrollView>
 
 </LinearLayout>

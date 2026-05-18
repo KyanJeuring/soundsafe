@@ -236,6 +236,7 @@ class HomeFragment : Fragment() {
 
         SoundMeasurementStore
             .getMeasurements()
+            .asReversed()
             .forEach { measurement ->
 
                 val row = TableRow(requireContext())

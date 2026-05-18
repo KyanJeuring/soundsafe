@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:fillViewport="true"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/textHome"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Sound monitoring"
-        android:textSize="20sp"
-        android:paddingBottom="16dp" />
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/buttonRecordingToggle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Stop recording" />
+        <TextView
+            android:id="@+id/textHome"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="16dp"
+            android:text="Sound monitoring"
+            android:textSize="20sp" />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
+        <Button
+            android:id="@+id/buttonRecordingToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Stop recording" />
 
         <TableLayout
             android:id="@+id/measurementTable"
@@ -37,19 +35,19 @@
             <TableRow>
 
                 <TextView
+                    android:padding="8dp"
                     android:text="Time"
-                    android:textStyle="bold"
-                    android:padding="8dp" />
+                    android:textStyle="bold" />
 
                 <TextView
+                    android:padding="8dp"
                     android:text="dB SPL"
-                    android:textStyle="bold"
-                    android:padding="8dp" />
+                    android:textStyle="bold" />
 
             </TableRow>
 
         </TableLayout>
 
-    </ScrollView>
+    </LinearLayout>
 
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -14,6 +14,7 @@ import android.widget.TableRow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.soundsafe.R
 import com.example.soundsafe.audio.SoundMeasurementStore
 import com.example.soundsafe.audio.SoundMonitoringService
 import com.example.soundsafe.databinding.FragmentHomeBinding
@@ -59,8 +60,13 @@ class HomeFragment : Fragment() {
         )
 
         binding.textHome.text =
-            "Sound monitoring"
+            getString(R.string.sound_monitoring_running)
 
+        binding.buttonRecordingToggle.setOnClickListener {
+            toggleRecording()
+        }
+
+        syncRecordingUi()
         checkPermissionsAndStartService()
 
         updateMeasurementTable()
@@ -117,6 +123,11 @@ class HomeFragment : Fragment() {
 
     private fun startSoundService() {
 
+        if (SoundMonitoringService.isServiceRunning) {
+            syncRecordingUi()
+            return
+        }
+
         val intent = Intent(
             requireContext(),
             SoundMonitoringService::class.java
@@ -127,8 +138,59 @@ class HomeFragment : Fragment() {
             intent
         )
 
-        _binding?.textHome?.text =
-            "Sound monitoring is running in the background"
+        showRecordingUi(true)
+    }
+
+    private fun toggleRecording() {
+
+        val context = requireContext()
+        val intent = Intent(
+            context,
+            SoundMonitoringService::class.java
+        )
+
+        if (SoundMonitoringService.isRecording) {
+
+            intent.action = SoundMonitoringService.ACTION_STOP_RECORDING
+            context.startService(intent)
+            showRecordingUi(false)
+
+        } else {
+
+            intent.action = SoundMonitoringService.ACTION_RESUME_RECORDING
+            context.startService(intent)
+            showRecordingUi(true)
+        }
+    }
+
+    private fun syncRecordingUi() {
+
+        val binding = _binding ?: return
+
+        showRecordingUi(
+            SoundMonitoringService.isRecording,
+            binding
+        )
+    }
+
+    private fun showRecordingUi(
+        isRecording: Boolean,
+        binding: FragmentHomeBinding? = _binding
+    ) {
+
+        val targetBinding = binding ?: return
+
+        if (isRecording) {
+            targetBinding.textHome.text =
+                getString(R.string.sound_monitoring_running)
+            targetBinding.buttonRecordingToggle.text =
+                getString(R.string.stop_recording)
+        } else {
+            targetBinding.textHome.text =
+                getString(R.string.sound_monitoring_paused)
+            targetBinding.buttonRecordingToggle.text =
+                getString(R.string.resume_recording)
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -154,7 +216,7 @@ class HomeFragment : Fragment() {
         } else {
 
             _binding?.textHome?.text =
-                "Permission denied."
+                getString(R.string.permission_denied)
         }
     }
 

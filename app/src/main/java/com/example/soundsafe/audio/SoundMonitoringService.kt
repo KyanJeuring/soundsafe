@@ -16,8 +16,26 @@ class SoundMonitoringService : Service() {
 
     private var decibelMeter: DecibelMeter? = null
 
+    companion object {
+        const val ACTION_STOP_RECORDING =
+            "com.example.soundsafe.audio.action.STOP_RECORDING"
+        const val ACTION_RESUME_RECORDING =
+            "com.example.soundsafe.audio.action.RESUME_RECORDING"
+        private const val NOTIFICATION_ID = 1
+
+        @Volatile
+        var isRecording: Boolean = false
+            private set
+
+        @Volatile
+        var isServiceRunning: Boolean = false
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
+
+        isServiceRunning = true
 
         createNotificationChannel()
 
@@ -41,12 +59,11 @@ class SoundMonitoringService : Service() {
         startId: Int
     ): Int {
 
-        startForeground(
-            1,
-            createNotification()
-        )
-
-        decibelMeter?.start()
+        when (intent?.action) {
+            ACTION_STOP_RECORDING -> stopRecording()
+            ACTION_RESUME_RECORDING -> resumeRecording()
+            else -> resumeRecording()
+        }
 
         return START_STICKY
     }
@@ -55,6 +72,8 @@ class SoundMonitoringService : Service() {
 
         decibelMeter?.stop()
         decibelMeter = null
+        isRecording = false
+        isServiceRunning = false
 
         super.onDestroy()
     }
@@ -65,6 +84,13 @@ class SoundMonitoringService : Service() {
 
     private fun createNotification(): Notification {
 
+        val contentText =
+            if (isRecording) {
+                "Checking sound level in the background"
+            } else {
+                "Recording is paused"
+            }
+
         return NotificationCompat.Builder(
             this,
             "sound_monitoring"
@@ -72,14 +98,32 @@ class SoundMonitoringService : Service() {
             .setContentTitle(
                 "SoundSafe is monitoring sound"
             )
-            .setContentText(
-                "Checking sound level in the background"
-            )
+            .setContentText(contentText)
             .setSmallIcon(
                 R.drawable.ic_launcher_foreground
             )
             .setOngoing(true)
             .build()
+    }
+
+    private fun resumeRecording() {
+
+        decibelMeter?.start()
+        isRecording = true
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification()
+        )
+    }
+
+    private fun stopRecording() {
+
+        decibelMeter?.stop()
+        isRecording = false
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification()
+        )
     }
 
     private fun createNotificationChannel() {

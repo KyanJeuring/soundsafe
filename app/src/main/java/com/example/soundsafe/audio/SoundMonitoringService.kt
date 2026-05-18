@@ -41,7 +41,7 @@ class SoundMonitoringService : Service() {
 
         decibelMeter = DecibelMeter(
             sampleDurationSeconds = 2,
-            sampleIntervalSeconds = 45
+            sampleIntervalSeconds = 58
         ) { db ->
 
             SoundMeasurementStore.addMeasurement(db)

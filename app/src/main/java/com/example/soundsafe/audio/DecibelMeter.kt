@@ -11,7 +11,7 @@ import kotlin.math.sqrt
 
 class DecibelMeter(
     private val sampleDurationSeconds: Int = 2,
-    private val sampleIntervalSeconds: Int = 45,
+    private val sampleIntervalSeconds: Int = 58,
     private val onDecibelChanged: (Double) -> Unit
 ) {
 

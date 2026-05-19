@@ -43,22 +43,7 @@ class SoundMonitoringService : Service() {
     }
 
     override fun onCreate() {
-        Log.d("SoundMonitoring", "Service onCreate - EXECUTING")
         super.onCreate()
-
-        // Use Main scope for the initial log to see if it even starts
-        serviceScope.launch(Dispatchers.Main) {
-            Log.d("SoundMonitoring", "Coroutine launched in Main")
-            withContext(Dispatchers.IO) {
-                try {
-                    Log.d("SoundMonitoring", "Initial test insert starting")
-                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = 0.0))
-                    Log.d("SoundMonitoring", "Initial test insert successful")
-                } catch (e: Exception) {
-                    Log.e("SoundMonitoring", "Initial test insert failed: ${e.message}")
-                }
-            }
-        }
 
         isServiceRunning = true
 

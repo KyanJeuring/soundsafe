@@ -40,6 +40,7 @@ class SoundMonitoringService : Service() {
         createNotificationChannel()
 
         decibelMeter = DecibelMeter(
+            context = this,
             sampleDurationSeconds = 2,
             sampleIntervalSeconds = 58
         ) { db ->

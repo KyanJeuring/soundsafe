@@ -3,4 +3,9 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+    <string name="sound_monitoring_running">Sound monitoring is running in the background</string>
+    <string name="sound_monitoring_paused">Sound monitoring is paused</string>
+    <string name="stop_recording">Stop recording</string>
+    <string name="resume_recording">Resume recording</string>
+    <string name="permission_denied">Permission denied.</string>
 </resources>

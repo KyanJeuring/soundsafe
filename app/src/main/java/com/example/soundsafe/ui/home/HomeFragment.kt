@@ -42,7 +42,7 @@ class HomeFragment : Fragment() {
 
                 tableRefreshHandler.postDelayed(
                     this,
-                    2000
+                    5000
                 )
             }
         }

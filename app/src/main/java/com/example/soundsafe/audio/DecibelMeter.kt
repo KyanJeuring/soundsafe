@@ -6,8 +6,8 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.PowerManager
+import android.os.Process
 import androidx.annotation.RequiresPermission
-import kotlin.concurrent.thread
 import kotlin.math.log10
 import kotlin.math.sqrt
 
@@ -15,7 +15,8 @@ class DecibelMeter(
     context: Context,
     private val sampleDurationSeconds: Int = 2,
     private val sampleIntervalSeconds: Int = 58,
-    private val onDecibelChanged: (Double) -> Unit
+    private val onDecibelChanged: (Double) -> Unit,
+    private val wakeLockTimeoutMillis: Long = 30L * 60L * 1000L
 ) {
 
     private val appContext = context.applicationContext
@@ -40,9 +41,10 @@ class DecibelMeter(
         isRunning = true
         acquireWakeLock()
 
-        monitoringThread = thread {
-
-            try {
+        monitoringThread = Thread(
+            Runnable {
+                try {
+                    Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
                 val bufferSize = AudioRecord.getMinBufferSize(
                     microphoneSampleRate,
@@ -92,10 +94,17 @@ class DecibelMeter(
                     audioRecord.release()
                 }
 
-            } finally {
-                releaseWakeLock()
+                } finally {
+                    releaseWakeLock()
+                }
             }
+        , "DecibelMeter-Monitor")
+
+        monitoringThread?.apply {
+            isDaemon = false
+            start()
         }
+
     }
 
     fun stop() {
@@ -120,7 +129,7 @@ class DecibelMeter(
             "SoundSafe:DecibelMeter"
         ).apply {
             setReferenceCounted(false)
-            acquire()
+            acquire(wakeLockTimeoutMillis)
         }
     }
 

@@ -42,15 +42,16 @@ class SoundMonitoringService : Service() {
         decibelMeter = DecibelMeter(
             context = this,
             sampleDurationSeconds = 2,
-            sampleIntervalSeconds = 58
-        ) { db ->
+            sampleIntervalSeconds = 58,
+            onDecibelChanged = { db ->
 
-            SoundMeasurementStore.addMeasurement(db)
+                SoundMeasurementStore.addMeasurement(db)
 
-            println(
-                "Sound level: %.1f dB SPL".format(db)
-            )
-        }
+                println(
+                    "Sound level: %.1f dB SPL".format(db)
+                )
+            }
+        )
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
@@ -107,6 +108,7 @@ class SoundMonitoringService : Service() {
             .build()
     }
 
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private fun resumeRecording() {
 
         decibelMeter?.start()

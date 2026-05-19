@@ -10,5 +10,5 @@ interface SoundDao {
      fun getAll(): List<Sound>
 
     @Insert
-     fun insert(sound: Sound)
+    suspend fun insert(sound: Sound)
 }

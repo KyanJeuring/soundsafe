@@ -14,7 +14,9 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         fun getDatabase(context: Context): AppDatabase {
+            android.util.Log.d("AppDatabase", "getDatabase called")
             return INSTANCE ?: synchronized(this) {
+                android.util.Log.d("AppDatabase", "Building new database instance")
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

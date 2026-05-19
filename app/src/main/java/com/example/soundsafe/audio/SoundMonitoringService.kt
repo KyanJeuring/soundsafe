@@ -8,16 +8,23 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import com.example.soundsafe.R
 import com.example.soundsafe.database.AppDatabase
 import com.example.soundsafe.database.Sound
 import com.example.soundsafe.database.SoundDao
+import kotlinx.coroutines.*
 
 class SoundMonitoringService : Service() {
 
+    init {
+        Log.d("SoundMonitoring", "SoundMonitoringService CLASS INITIALIZED")
+    }
+
     private var decibelMeter: DecibelMeter? = null
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         const val ACTION_STOP_RECORDING =
@@ -36,7 +43,22 @@ class SoundMonitoringService : Service() {
     }
 
     override fun onCreate() {
+        Log.d("SoundMonitoring", "Service onCreate - EXECUTING")
         super.onCreate()
+
+        // Use Main scope for the initial log to see if it even starts
+        serviceScope.launch(Dispatchers.Main) {
+            Log.d("SoundMonitoring", "Coroutine launched in Main")
+            withContext(Dispatchers.IO) {
+                try {
+                    Log.d("SoundMonitoring", "Initial test insert starting")
+                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = 0.0))
+                    Log.d("SoundMonitoring", "Initial test insert successful")
+                } catch (e: Exception) {
+                    Log.e("SoundMonitoring", "Initial test insert failed: ${e.message}")
+                }
+            }
+        }
 
         isServiceRunning = true
 
@@ -50,13 +72,14 @@ class SoundMonitoringService : Service() {
 
             SoundMeasurementStore.addMeasurement(db)
 
-            //Testing
-            Thread {
-                AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = db))
-            }.start()
-            println(
-                "Sound level: %.1f dB SPL".format(db)
-            )
+            serviceScope.launch {
+                try {
+                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = db))
+                    Log.d("SoundMonitoring", "Sound level: %.1f dB SPL".format(db))
+                } catch (e: Exception) {
+                    Log.e("SoundMonitoring", "Error saving sound level", e)
+                }
+            }
         }
     }
 
@@ -82,6 +105,7 @@ class SoundMonitoringService : Service() {
         decibelMeter = null
         isRecording = false
         isServiceRunning = false
+        serviceScope.cancel()
 
         super.onDestroy()
     }

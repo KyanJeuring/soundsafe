@@ -11,6 +11,9 @@ import android.os.IBinder
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import com.example.soundsafe.R
+import com.example.soundsafe.database.AppDatabase
+import com.example.soundsafe.database.Sound
+import com.example.soundsafe.database.SoundDao
 
 class SoundMonitoringService : Service() {
 
@@ -47,6 +50,10 @@ class SoundMonitoringService : Service() {
 
             SoundMeasurementStore.addMeasurement(db)
 
+            //Testing
+            Thread {
+                AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = db))
+            }.start()
             println(
                 "Sound level: %.1f dB SPL".format(db)
             )

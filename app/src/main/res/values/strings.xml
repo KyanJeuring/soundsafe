@@ -8,4 +8,6 @@
     <string name="stop_recording">Stop recording</string>
     <string name="resume_recording">Resume recording</string>
     <string name="permission_denied">Permission denied.</string>
+    <string name="auto_media_control">Automatic Media Volume</string>
+    <string name="auto_ring_control">Automatic Ringtone Volume</string>
 </resources>

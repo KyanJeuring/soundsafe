@@ -1,7 +1,10 @@
 package com.example.soundsafe.ui.home
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -32,6 +35,17 @@ class HomeFragment : Fragment() {
 
     private val tableRefreshHandler =
         Handler(Looper.getMainLooper())
+
+    private val autoVolumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                SoundMonitoringService.ACTION_AUTO_MEDIA_DISABLED,
+                SoundMonitoringService.ACTION_AUTO_RING_DISABLED -> {
+                    syncAutoVolumeToggles()
+                }
+            }
+        }
+    }
 
     private val tableRefreshRunnable =
         object : Runnable {
@@ -66,7 +80,18 @@ class HomeFragment : Fragment() {
             toggleRecording()
         }
 
+        binding.switchAutoMedia.setOnCheckedChangeListener { _, isChecked ->
+            val prefs = requireContext().getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("auto_media_enabled", isChecked).apply()
+        }
+
+        binding.switchAutoRing.setOnCheckedChangeListener { _, isChecked ->
+            val prefs = requireContext().getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("auto_ring_enabled", isChecked).apply()
+        }
+
         syncRecordingUi()
+        syncAutoVolumeToggles()
         checkPermissionsAndStartService()
 
         updateMeasurementTable()
@@ -171,6 +196,13 @@ class HomeFragment : Fragment() {
             SoundMonitoringService.isRecording,
             binding
         )
+    }
+
+    private fun syncAutoVolumeToggles() {
+        val binding = _binding ?: return
+        val prefs = requireContext().getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
+        binding.switchAutoMedia.isChecked = prefs.getBoolean("auto_media_enabled", false)
+        binding.switchAutoRing.isChecked = prefs.getBoolean("auto_ring_enabled", false)
     }
 
     private fun showRecordingUi(
@@ -282,6 +314,18 @@ class HomeFragment : Fragment() {
 
         super.onResume()
 
+        val filter = IntentFilter().apply {
+            addAction(SoundMonitoringService.ACTION_AUTO_MEDIA_DISABLED)
+            addAction(SoundMonitoringService.ACTION_AUTO_RING_DISABLED)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requireContext().registerReceiver(autoVolumeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            requireContext().registerReceiver(autoVolumeReceiver, filter)
+        }
+        syncAutoVolumeToggles()
+
         tableRefreshHandler.post(
             tableRefreshRunnable
         )
@@ -290,6 +334,8 @@ class HomeFragment : Fragment() {
     override fun onPause() {
 
         super.onPause()
+
+        requireContext().unregisterReceiver(autoVolumeReceiver)
 
         tableRefreshHandler.removeCallbacks(
             tableRefreshRunnable

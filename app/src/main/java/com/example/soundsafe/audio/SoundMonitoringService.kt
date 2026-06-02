@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -14,7 +15,6 @@ import androidx.core.app.NotificationCompat
 import com.example.soundsafe.R
 import com.example.soundsafe.database.AppDatabase
 import com.example.soundsafe.database.Sound
-import com.example.soundsafe.database.SoundDao
 import kotlinx.coroutines.*
 
 class SoundMonitoringService : Service() {
@@ -24,6 +24,7 @@ class SoundMonitoringService : Service() {
     }
 
     private var decibelMeter: DecibelMeter? = null
+    private var volumeController: VolumeController? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -31,6 +32,10 @@ class SoundMonitoringService : Service() {
             "com.example.soundsafe.audio.action.STOP_RECORDING"
         const val ACTION_RESUME_RECORDING =
             "com.example.soundsafe.audio.action.RESUME_RECORDING"
+        const val ACTION_AUTO_MEDIA_DISABLED =
+            "com.example.soundsafe.audio.action.AUTO_MEDIA_DISABLED"
+        const val ACTION_AUTO_RING_DISABLED =
+            "com.example.soundsafe.audio.action.AUTO_RING_DISABLED"
         private const val NOTIFICATION_ID = 1
 
         @Volatile
@@ -49,6 +54,20 @@ class SoundMonitoringService : Service() {
 
         createNotificationChannel()
 
+        volumeController = VolumeController(this) { streamType ->
+            val action = when (streamType) {
+                AudioManager.STREAM_MUSIC -> ACTION_AUTO_MEDIA_DISABLED
+                AudioManager.STREAM_RING -> ACTION_AUTO_RING_DISABLED
+                else -> null
+            }
+            action?.let {
+                val intent = Intent(it).apply {
+                    setPackage(packageName)
+                }
+                sendBroadcast(intent)
+            }
+        }
+
         decibelMeter = DecibelMeter(
             context = this,
             sampleDurationSeconds = 2,
@@ -56,6 +75,7 @@ class SoundMonitoringService : Service() {
         ) { db ->
 
             SoundMeasurementStore.addMeasurement(db)
+            volumeController?.adjustVolume(db)
 
             serviceScope.launch {
                 try {
@@ -88,6 +108,8 @@ class SoundMonitoringService : Service() {
 
         decibelMeter?.stop()
         decibelMeter = null
+        volumeController?.unregister()
+        volumeController = null
         isRecording = false
         isServiceRunning = false
         serviceScope.cancel()
@@ -123,6 +145,7 @@ class SoundMonitoringService : Service() {
             .build()
     }
 
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private fun resumeRecording() {
 
         decibelMeter?.start()

@@ -15,6 +15,7 @@
             android:id="@+id/textHome"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:paddingBottom="16dp"
             android:text="Sound monitoring"
             android:textSize="20sp" />
@@ -23,8 +24,22 @@
             android:id="@+id/buttonRecordingToggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="8dp"
             android:text="Stop recording" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchAutoMedia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/auto_media_control" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchAutoRing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/auto_ring_control" />
 
         <TableLayout
             android:id="@+id/measurementTable"

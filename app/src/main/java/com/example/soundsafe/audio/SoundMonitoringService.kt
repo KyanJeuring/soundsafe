@@ -26,6 +26,7 @@ class SoundMonitoringService : Service() {
     private var decibelMeter: DecibelMeter? = null
     private var volumeController: VolumeController? = null
     private val soundSmoother = SoundSmoother()
+    private val environmentClassifier = SoundEnvironmentClassifier()
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -76,7 +77,7 @@ class SoundMonitoringService : Service() {
         ) { rawDb ->
 
             val smoothedDb = soundSmoother.smooth(rawDb)
-            val environment = SoundEnvironment.fromDecibels(smoothedDb)
+            val environment = environmentClassifier.classify(smoothedDb)
 
             SoundMeasurementStore.addMeasurement(
                 rawDecibels = rawDb,
@@ -175,6 +176,7 @@ class SoundMonitoringService : Service() {
 
         decibelMeter?.stop()
         soundSmoother.reset()
+        environmentClassifier.reset()
         isRecording = false
         startForeground(
             NOTIFICATION_ID,

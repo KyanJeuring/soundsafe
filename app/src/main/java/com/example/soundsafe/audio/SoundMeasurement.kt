@@ -2,5 +2,7 @@ package com.example.soundsafe.audio
 
 data class SoundMeasurement(
     val timestamp: Long,
-    val decibels: Double
+    val rawDecibels: Double,
+    val smoothedDecibels: Double,
+    val environment: SoundEnvironment
 )

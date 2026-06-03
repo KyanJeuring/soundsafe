@@ -4,17 +4,27 @@ object SoundMeasurementStore {
 
     private val measurements = mutableListOf<SoundMeasurement>()
 
-    fun addMeasurement(decibels: Double) {
+    fun addMeasurement(
+        rawDecibels: Double,
+        smoothedDecibels: Double,
+        environment: SoundEnvironment
+    ) {
 
-        measurements.add(
-            SoundMeasurement(
-                timestamp = System.currentTimeMillis(),
-                decibels = decibels
+        synchronized(measurements) {
+            measurements.add(
+                SoundMeasurement(
+                    timestamp = System.currentTimeMillis(),
+                    rawDecibels = rawDecibels,
+                    smoothedDecibels = smoothedDecibels,
+                    environment = environment
+                )
             )
-        )
+        }
     }
 
     fun getMeasurements(): List<SoundMeasurement> {
-        return measurements.toList()
+        return synchronized(measurements) {
+            measurements.toList()
+        }
     }
 }

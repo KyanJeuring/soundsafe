@@ -60,37 +60,33 @@ class DecibelMeter(
 
                 val buffer = ShortArray(bufferSize)
 
-                try {
-
-                    audioRecord.startRecording()
-
-                    while (isRunning) {
+                while (isRunning) {
+                    try {
+                        audioRecord.startRecording()
 
                         sampleAudio(
                             audioRecord,
                             buffer
                         )
 
-                        try {
+                        audioRecord.stop()
 
-                            Thread.sleep(
-                                sampleIntervalSeconds * 1000L
-                            )
-
-                        } catch (_: InterruptedException) {
-                            break
-                        }
+                    } catch (e: Exception) {
+                        // Log error if needed or continue
                     }
-
-                } finally {
 
                     try {
-                        audioRecord.stop()
-                    } catch (_: Exception) {
-                    }
 
-                    audioRecord.release()
+                        Thread.sleep(
+                            sampleIntervalSeconds * 1000L
+                        )
+
+                    } catch (_: InterruptedException) {
+                        break
+                    }
                 }
+
+                audioRecord.release()
 
             } finally {
                 releaseWakeLock()

@@ -46,7 +46,7 @@
             android:id="@+id/measurementTable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:stretchColumns="0,1">
+            android:stretchColumns="0,1,2,3">
 
             <TableRow>
 
@@ -57,7 +57,17 @@
 
                 <TextView
                     android:padding="8dp"
-                    android:text="dB SPL"
+                    android:text="Raw dB"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:padding="8dp"
+                    android:text="Smooth dB"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:padding="8dp"
+                    android:text="Level"
                     android:textStyle="bold" />
 
             </TableRow>

@@ -25,6 +25,8 @@ class SoundMonitoringService : Service() {
 
     private var decibelMeter: DecibelMeter? = null
     private var volumeController: VolumeController? = null
+    private val soundSmoother = SoundSmoother()
+    private val environmentClassifier = SoundEnvironmentClassifier()
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
@@ -72,15 +74,29 @@ class SoundMonitoringService : Service() {
             context = this,
             sampleDurationSeconds = 2,
             sampleIntervalSeconds = 58
-        ) { db ->
+        ) { rawDb ->
 
-            SoundMeasurementStore.addMeasurement(db)
-            volumeController?.adjustVolume(db)
+            val smoothedDb = soundSmoother.smooth(rawDb)
+            val environment = environmentClassifier.classify(smoothedDb)
+
+            SoundMeasurementStore.addMeasurement(
+                rawDecibels = rawDb,
+                smoothedDecibels = smoothedDb,
+                environment = environment
+            )
+            volumeController?.adjustVolume(smoothedDb)
 
             serviceScope.launch {
                 try {
-                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = db))
-                    Log.d("SoundMonitoring", "Sound level: %.1f dB SPL".format(db))
+                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = smoothedDb))
+                    Log.d(
+                        "SoundMonitoring",
+                        "Sound level: raw %.1f dB, smoothed %.1f dB, %s".format(
+                            rawDb,
+                            smoothedDb,
+                            environment.displayName
+                        )
+                    )
                 } catch (e: Exception) {
                     Log.e("SoundMonitoring", "Error saving sound level", e)
                 }
@@ -159,6 +175,8 @@ class SoundMonitoringService : Service() {
     private fun stopRecording() {
 
         decibelMeter?.stop()
+        soundSmoother.reset()
+        environmentClassifier.reset()
         isRecording = false
         startForeground(
             NOTIFICATION_ID,

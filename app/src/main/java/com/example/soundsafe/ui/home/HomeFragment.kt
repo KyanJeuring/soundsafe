@@ -288,15 +288,43 @@ class HomeFragment : Fragment() {
                     8
                 )
 
-                val dbText =
+                val rawDbText =
                     TextView(requireContext())
 
-                dbText.text =
+                rawDbText.text =
                     "%.1f".format(
-                        measurement.decibels
+                        measurement.rawDecibels
                     )
 
-                dbText.setPadding(
+                rawDbText.setPadding(
+                    8,
+                    8,
+                    8,
+                    8
+                )
+
+                val smoothedDbText =
+                    TextView(requireContext())
+
+                smoothedDbText.text =
+                    "%.1f".format(
+                        measurement.smoothedDecibels
+                    )
+
+                smoothedDbText.setPadding(
+                    8,
+                    8,
+                    8,
+                    8
+                )
+
+                val environmentText =
+                    TextView(requireContext())
+
+                environmentText.text =
+                    measurement.environment.displayName
+
+                environmentText.setPadding(
                     8,
                     8,
                     8,
@@ -304,7 +332,9 @@ class HomeFragment : Fragment() {
                 )
 
                 row.addView(timeText)
-                row.addView(dbText)
+                row.addView(rawDbText)
+                row.addView(smoothedDbText)
+                row.addView(environmentText)
 
                 table.addView(row)
             }

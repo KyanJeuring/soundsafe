@@ -43,7 +43,9 @@ fun DashboardScreen(
     isRecording: Boolean,
     onToggleRecording: () -> Unit
 ) {
-    val dbValue = currentDbLevel.toDoubleOrNull() ?: 0.0
+    // Determine effective dB value based on recording state
+    val effectiveDbText = if (isRecording) currentDbLevel else "0"
+    val dbValue = if (isRecording) (currentDbLevel.toDoubleOrNull() ?: 0.0) else 0.0
 
     Column(
         modifier = Modifier
@@ -62,7 +64,7 @@ fun DashboardScreen(
 
             Text(
                 modifier = Modifier.padding(top = 8.dp),
-                text = "$currentDbLevel dB",
+                text = "$effectiveDbText dB",
                 fontSize = 72.sp,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.displayLarge
@@ -87,7 +89,7 @@ fun DashboardScreen(
                 ButtonDefaults.buttonColors()
             }
         ) {
-            Text(if (isRecording) "Stop Monitoring" else "Start Monitoring")
+            Text(if (isRecording) "Stop Recording" else "Resume Recording")
         }
     }
 }

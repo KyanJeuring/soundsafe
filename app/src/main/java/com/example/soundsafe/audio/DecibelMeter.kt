@@ -6,6 +6,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.PowerManager
+import android.os.Process
 import androidx.annotation.RequiresPermission
 import kotlin.concurrent.thread
 import kotlin.math.log10
@@ -15,6 +16,7 @@ class DecibelMeter(
     context: Context,
     private val sampleDurationSeconds: Int = 2,
     private val sampleIntervalSeconds: Int = 58,
+    private val wakeLockTimeoutMillis: Long = 30L * 60L * 1000L,
     private val onDecibelChanged: (Double) -> Unit
 ) {
 
@@ -40,9 +42,9 @@ class DecibelMeter(
         isRunning = true
         acquireWakeLock()
 
-        monitoringThread = thread {
-
+        monitoringThread = thread(name = "DecibelMeter-Monitor") {
             try {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
 
                 val bufferSize = AudioRecord.getMinBufferSize(
                     microphoneSampleRate,
@@ -60,37 +62,29 @@ class DecibelMeter(
 
                 val buffer = ShortArray(bufferSize)
 
-                try {
-
-                    audioRecord.startRecording()
-
-                    while (isRunning) {
+                while (isRunning) {
+                    try {
+                        audioRecord.startRecording()
 
                         sampleAudio(
                             audioRecord,
                             buffer
                         )
 
-                        try {
+                        audioRecord.stop()
 
-                            Thread.sleep(
-                                sampleIntervalSeconds * 1000L
-                            )
-
-                        } catch (_: InterruptedException) {
-                            break
-                        }
+                    } catch (e: Exception) {
+                        // Log error if needed or continue
                     }
-
-                } finally {
 
                     try {
-                        audioRecord.stop()
-                    } catch (_: Exception) {
+                        Thread.sleep(sampleIntervalSeconds * 1000L)
+                    } catch (_: InterruptedException) {
+                        break
                     }
-
-                    audioRecord.release()
                 }
+
+                audioRecord.release()
 
             } finally {
                 releaseWakeLock()
@@ -120,7 +114,7 @@ class DecibelMeter(
             "SoundSafe:DecibelMeter"
         ).apply {
             setReferenceCounted(false)
-            acquire()
+            acquire(wakeLockTimeoutMillis)
         }
     }
 

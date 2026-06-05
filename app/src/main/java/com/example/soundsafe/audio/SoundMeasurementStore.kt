@@ -3,6 +3,7 @@ package com.example.soundsafe.audio
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 object SoundMeasurementStore {
 
@@ -22,11 +23,11 @@ object SoundMeasurementStore {
             environment = environment
         )
 
-        val currentList = _measurements.value
-        val newList = (currentList + newMeasurement).let {
-            if (it.size > MAX_MEASUREMENTS) it.drop(it.size - MAX_MEASUREMENTS) else it
+        _measurements.update { currentList ->
+            (currentList + newMeasurement).let {
+                if (it.size > MAX_MEASUREMENTS) it.drop(it.size - MAX_MEASUREMENTS) else it
+            }
         }
-        _measurements.value = newList
     }
 
     fun getMeasurements(): List<SoundMeasurement> {

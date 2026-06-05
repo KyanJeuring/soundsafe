@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 object SoundMeasurementStore {
 
-    private const val MAX_MEASUREMENTS = 1000
     private val _measurements = MutableStateFlow<List<SoundMeasurement>>(emptyList())
     val measurements: StateFlow<List<SoundMeasurement>> = _measurements.asStateFlow()
+    private const val MAX_MEASUREMENTS = 1440 // keep up to ~24 hours of one-minute samples
 
     fun addMeasurement(
         rawDecibels: Double,

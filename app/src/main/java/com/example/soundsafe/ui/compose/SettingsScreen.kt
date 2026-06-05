@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +16,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SettingsScreen(
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
     onAutoMediaToggle: (Boolean) -> Unit,
     isAutoRingtoneEnabled: Boolean,
@@ -26,6 +29,13 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Button(
+            onClick = onToggleRecording,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (isRecording) "Stop Recording" else "Resume Recording")
+        }
+
         SettingToggle(
             label = "Automatic Media Volume",
             checked = isAutoMediaEnabled,

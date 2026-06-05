@@ -31,6 +31,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun SoundSafeApp(
     currentDbLevel: String,
     soundLog: List<SoundRecord>,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
     onAutoMediaToggle: (Boolean) -> Unit,
     isAutoRingtoneEnabled: Boolean,
@@ -77,6 +79,8 @@ fun SoundSafeApp(
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
+                        isRecording = isRecording,
+                        onToggleRecording = onToggleRecording,
                         isAutoMediaEnabled = isAutoMediaEnabled,
                         onAutoMediaToggle = onAutoMediaToggle,
                         isAutoRingtoneEnabled = isAutoRingtoneEnabled,
@@ -98,6 +102,8 @@ fun SoundSafeAppPreview() {
             SoundRecord("04:35:36", "45.2"),
             SoundRecord("04:35:37", "44.8")
         ),
+        isRecording = true,
+        onToggleRecording = {},
         isAutoMediaEnabled = true,
         onAutoMediaToggle = {},
         isAutoRingtoneEnabled = false,

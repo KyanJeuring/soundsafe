@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private val soundLog = mutableStateListOf<SoundRecord>()
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
+    private var isRecording by mutableStateOf(false)
 
     private val handler = Handler(Looper.getMainLooper())
     private val updateRunnable = object : Runnable {
@@ -75,6 +76,8 @@ class MainActivity : ComponentActivity() {
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
                 soundLog = soundLog,
+                isRecording = isRecording,
+                onToggleRecording = { toggleRecording() },
                 isAutoMediaEnabled = isAutoMediaEnabled,
                 onAutoMediaToggle = {
                     isAutoMediaEnabled = it
@@ -110,6 +113,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
+        isRecording = SoundMonitoringService.isRecording
     }
 
     override fun onPause() {
@@ -158,9 +162,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startSoundService() {
-        if (SoundMonitoringService.isServiceRunning) return
+        if (SoundMonitoringService.isServiceRunning) {
+            isRecording = SoundMonitoringService.isRecording
+            return
+        }
 
         val intent = Intent(this, SoundMonitoringService::class.java)
         ContextCompat.startForegroundService(this, intent)
+        isRecording = true
+    }
+
+    private fun toggleRecording() {
+        val intent = Intent(this, SoundMonitoringService::class.java)
+        if (isRecording) {
+            intent.action = SoundMonitoringService.ACTION_STOP_RECORDING
+        } else {
+            intent.action = SoundMonitoringService.ACTION_RESUME_RECORDING
+        }
+        startService(intent)
+        isRecording = !isRecording
     }
 }

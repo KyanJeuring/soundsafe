@@ -1,6 +1,7 @@
 package com.example.soundsafe
 
 import com.example.soundsafe.audio.SoundEnvironment
+import com.example.soundsafe.audio.SoundEnvironmentClassifier
 import com.example.soundsafe.audio.SoundSmoother
 import org.junit.Test
 
@@ -30,5 +31,27 @@ class ExampleUnitTest {
         assertEquals(SoundEnvironment.QUIET, SoundEnvironment.fromDecibels(45.0))
         assertEquals(SoundEnvironment.NORMAL, SoundEnvironment.fromDecibels(60.0))
         assertEquals(SoundEnvironment.LOUD, SoundEnvironment.fromDecibels(80.0))
+    }
+
+    @Test
+    fun classifier_doesNotBounceAroundLoudThreshold() {
+        val classifier = SoundEnvironmentClassifier()
+
+        assertEquals(SoundEnvironment.NORMAL, classifier.classify(70.0))
+        assertEquals(SoundEnvironment.NORMAL, classifier.classify(76.0))
+        assertEquals(SoundEnvironment.LOUD, classifier.classify(78.0))
+        assertEquals(SoundEnvironment.LOUD, classifier.classify(74.0))
+        assertEquals(SoundEnvironment.NORMAL, classifier.classify(71.0))
+    }
+
+    @Test
+    fun classifier_doesNotBounceAroundQuietThreshold() {
+        val classifier = SoundEnvironmentClassifier()
+
+        assertEquals(SoundEnvironment.QUIET, classifier.classify(45.0))
+        assertEquals(SoundEnvironment.QUIET, classifier.classify(50.0))
+        assertEquals(SoundEnvironment.NORMAL, classifier.classify(52.0))
+        assertEquals(SoundEnvironment.NORMAL, classifier.classify(49.0))
+        assertEquals(SoundEnvironment.QUIET, classifier.classify(47.0))
     }
 }

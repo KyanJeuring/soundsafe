@@ -1,28 +1,104 @@
 package com.example.soundsafe.ui.compose
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
 fun DashboardScreen(
     currentDbLevel: String
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    val dbValue = currentDbLevel.toDoubleOrNull() ?: 0.0
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        SoundGauge(
+            dbValue = dbValue.toFloat(),
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .aspectRatio(1.8f) // Tighter aspect ratio for the arc
+        )
+
         Text(
+            modifier = Modifier.padding(top = 8.dp),
             text = "$currentDbLevel dB",
             fontSize = 72.sp,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.displayLarge
+        )
+    }
+}
+
+@Composable
+fun SoundGauge(
+    dbValue: Float,
+    modifier: Modifier = Modifier,
+    maxDb: Float = 100f
+) {
+    val coercedValue = dbValue.coerceIn(0f, maxDb)
+    val sweepAngle by animateFloatAsState(
+        targetValue = (coercedValue / maxDb) * 180f,
+        animationSpec = tween(durationMillis = 500),
+        label = "SweepAngleAnimation"
+    )
+
+    val color by animateColorAsState(
+        targetValue = when {
+            coercedValue <= 40f -> Color(0xFF4CAF50) // Green
+            coercedValue <= 65f -> Color(0xFFFF9800) // Orange
+            else -> Color(0xFFF44336) // Red
+        },
+        animationSpec = tween(durationMillis = 500),
+        label = "ColorAnimation"
+    )
+
+    Canvas(modifier = modifier) {
+        val strokeWidth = size.width * 0.1f
+        // Ensure the arc is centered and fits the width
+        val arcSize = size.copy(height = size.width)
+
+        // Track Layer (Subtle Light Grey)
+        drawArc(
+            color = Color.LightGray.copy(alpha = 0.3f),
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+            size = arcSize
+        )
+
+        // Progress Layer (Dynamic Color)
+        drawArc(
+            color = color,
+            startAngle = 180f,
+            sweepAngle = sweepAngle,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
+            size = arcSize
         )
     }
 }

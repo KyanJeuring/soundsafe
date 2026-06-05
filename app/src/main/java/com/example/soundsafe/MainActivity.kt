@@ -8,14 +8,14 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.example.soundsafe.audio.SoundMeasurementStore
@@ -29,21 +29,10 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
 
     // UI States
-    private var currentDbLevel by mutableStateOf("0.0")
-    private val soundLog = mutableStateListOf<SoundRecord>()
     private var selectedTimeFrame by mutableStateOf("Daily")
     private var isDarkModeEnabled by mutableStateOf(false)
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
-    private var isRecording by mutableStateOf(false)
-
-    private val handler = Handler(Looper.getMainLooper())
-    private val updateRunnable = object : Runnable {
-        override fun run() {
-            updateUiData()
-            handler.postDelayed(this, 2000)
-        }
-    }
 
     private val autoVolumeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -76,6 +65,25 @@ class MainActivity : ComponentActivity() {
         isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
 
         setContent {
+            val isRecording by SoundMonitoringService.isRecording.collectAsState()
+            val measurements by SoundMeasurementStore.measurements.collectAsState()
+
+            val currentDbLevel = remember(measurements) {
+                if (measurements.isNotEmpty()) {
+                    "%.1f".format(measurements.last().smoothedDecibels)
+                } else "0.0"
+            }
+
+            val soundLog = remember(measurements) {
+                val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                measurements.asReversed().map {
+                    SoundRecord(
+                        time = timeFormat.format(Date(it.timestamp)),
+                        dbLevel = "%.1f".format(it.smoothedDecibels)
+                    )
+                }
+            }
+
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
                 soundLog = soundLog,
@@ -87,7 +95,7 @@ class MainActivity : ComponentActivity() {
                     prefs.edit().putBoolean("dark_mode_enabled", it).apply()
                 },
                 isRecording = isRecording,
-                onToggleRecording = { toggleRecording() },
+                onToggleRecording = { toggleRecording(isRecording) },
                 isAutoMediaEnabled = isAutoMediaEnabled,
                 onAutoMediaToggle = {
                     isAutoMediaEnabled = it
@@ -106,7 +114,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        handler.post(updateRunnable)
 
         val filter = IntentFilter().apply {
             addAction(SoundMonitoringService.ACTION_AUTO_MEDIA_DISABLED)
@@ -119,37 +126,16 @@ class MainActivity : ComponentActivity() {
             registerReceiver(autoVolumeReceiver, filter)
         }
 
-        // Re-sync states on resume in case they changed in background
+        // Re-sync persistent settings on resume
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
         isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
-        isRecording = SoundMonitoringService.isRecording
     }
 
     override fun onPause() {
         super.onPause()
-        handler.removeCallbacks(updateRunnable)
         unregisterReceiver(autoVolumeReceiver)
-    }
-
-    private fun updateUiData() {
-        val measurements = SoundMeasurementStore.getMeasurements()
-        if (measurements.isNotEmpty()) {
-            currentDbLevel = "%.1f".format(measurements.last().smoothedDecibels)
-        }
-
-        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        val newLog = measurements.asReversed().map {
-            SoundRecord(
-                time = timeFormat.format(Date(it.timestamp)),
-                dbLevel = "%.1f".format(it.smoothedDecibels)
-            )
-        }
-
-        // Update list efficiently
-        soundLog.clear()
-        soundLog.addAll(newLog)
     }
 
     private fun checkPermissionsAndStartService() {
@@ -173,24 +159,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startSoundService() {
-        if (SoundMonitoringService.isServiceRunning) {
-            isRecording = SoundMonitoringService.isRecording
+        if (SoundMonitoringService.isServiceRunning.value) {
             return
         }
 
         val intent = Intent(this, SoundMonitoringService::class.java)
         ContextCompat.startForegroundService(this, intent)
-        isRecording = true
     }
 
-    private fun toggleRecording() {
+    private fun toggleRecording(isCurrentlyRecording: Boolean) {
         val intent = Intent(this, SoundMonitoringService::class.java)
-        if (isRecording) {
+        if (isCurrentlyRecording) {
             intent.action = SoundMonitoringService.ACTION_STOP_RECORDING
         } else {
             intent.action = SoundMonitoringService.ACTION_RESUME_RECORDING
         }
         startService(intent)
-        isRecording = !isRecording
     }
 }

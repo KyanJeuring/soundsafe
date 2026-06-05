@@ -16,6 +16,9 @@ import com.example.soundsafe.R
 import com.example.soundsafe.database.AppDatabase
 import com.example.soundsafe.database.Sound
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SoundMonitoringService : Service() {
 
@@ -40,19 +43,17 @@ class SoundMonitoringService : Service() {
             "com.example.soundsafe.audio.action.AUTO_RING_DISABLED"
         private const val NOTIFICATION_ID = 1
 
-        @Volatile
-        var isRecording: Boolean = false
-            private set
+        private val _isRecording = MutableStateFlow(false)
+        val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
 
-        @Volatile
-        var isServiceRunning: Boolean = false
-            private set
+        private val _isServiceRunning = MutableStateFlow(false)
+        val isServiceRunning: StateFlow<Boolean> = _isServiceRunning.asStateFlow()
     }
 
     override fun onCreate() {
         super.onCreate()
 
-        isServiceRunning = true
+        _isServiceRunning.value = true
 
         createNotificationChannel()
 
@@ -126,8 +127,8 @@ class SoundMonitoringService : Service() {
         decibelMeter = null
         volumeController?.unregister()
         volumeController = null
-        isRecording = false
-        isServiceRunning = false
+        _isRecording.value = false
+        _isServiceRunning.value = false
         serviceScope.cancel()
 
         super.onDestroy()
@@ -140,7 +141,7 @@ class SoundMonitoringService : Service() {
     private fun createNotification(): Notification {
 
         val contentText =
-            if (isRecording) {
+            if (_isRecording.value) {
                 "Checking sound level in the background"
             } else {
                 "Recording is paused"
@@ -165,7 +166,7 @@ class SoundMonitoringService : Service() {
     private fun resumeRecording() {
 
         decibelMeter?.start()
-        isRecording = true
+        _isRecording.value = true
         startForeground(
             NOTIFICATION_ID,
             createNotification()
@@ -177,7 +178,7 @@ class SoundMonitoringService : Service() {
         decibelMeter?.stop()
         soundSmoother.reset()
         environmentClassifier.reset()
-        isRecording = false
+        _isRecording.value = false
         startForeground(
             NOTIFICATION_ID,
             createNotification()

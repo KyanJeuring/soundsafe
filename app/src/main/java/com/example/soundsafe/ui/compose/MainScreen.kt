@@ -31,6 +31,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun SoundSafeApp(
     currentDbLevel: String,
     soundLog: List<SoundRecord>,
+    currentMediaVolume: Float,
+    onVolumeChange: (Float) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
@@ -72,7 +74,11 @@ fun SoundSafeApp(
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable(Screen.Dashboard.route) {
-                    DashboardScreen(currentDbLevel = currentDbLevel)
+                    DashboardScreen(
+                        currentDbLevel = currentDbLevel,
+                        currentMediaVolume = currentMediaVolume,
+                        onVolumeChange = onVolumeChange
+                    )
                 }
                 composable(Screen.Analytics.route) {
                     AnalyticsScreen(soundLog = soundLog)
@@ -102,6 +108,8 @@ fun SoundSafeAppPreview() {
             SoundRecord("04:35:36", "45.2"),
             SoundRecord("04:35:37", "44.8")
         ),
+        currentMediaVolume = 0.5f,
+        onVolumeChange = {},
         isRecording = true,
         onToggleRecording = {},
         isAutoMediaEnabled = true,

@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     // UI States
     private var currentDbLevel by mutableStateOf("0.0")
     private val soundLog = mutableStateListOf<SoundRecord>()
+    private var currentMediaVolume by mutableStateOf(0.5f)
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
     private var isRecording by mutableStateOf(false)
@@ -76,6 +77,8 @@ class MainActivity : ComponentActivity() {
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
                 soundLog = soundLog,
+                currentMediaVolume = currentMediaVolume,
+                onVolumeChange = { currentMediaVolume = it },
                 isRecording = isRecording,
                 onToggleRecording = { toggleRecording() },
                 isAutoMediaEnabled = isAutoMediaEnabled,

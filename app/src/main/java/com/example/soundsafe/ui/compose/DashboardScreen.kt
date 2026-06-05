@@ -6,11 +6,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,10 +31,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Row
 
 @Composable
 fun DashboardScreen(
-    currentDbLevel: String
+    currentDbLevel: String,
+    currentMediaVolume: Float,
+    onVolumeChange: (Float) -> Unit
 ) {
     val dbValue = currentDbLevel.toDoubleOrNull() ?: 0.0
 
@@ -34,22 +46,67 @@ fun DashboardScreen(
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
     ) {
-        SoundGauge(
-            dbValue = dbValue.toFloat(),
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .aspectRatio(1.8f) // Tighter aspect ratio for the arc
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            SoundGauge(
+                dbValue = dbValue.toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .aspectRatio(1.8f)
+            )
 
-        Text(
-            modifier = Modifier.padding(top = 8.dp),
-            text = "$currentDbLevel dB",
-            fontSize = 72.sp,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.displayLarge
+            Text(
+                modifier = Modifier.padding(top = 8.dp),
+                text = "$currentDbLevel dB",
+                fontSize = 72.sp,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.displayLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        VolumeController(
+            volume = currentMediaVolume,
+            onVolumeChange = onVolumeChange
         )
+    }
+}
+
+@Composable
+fun VolumeController(
+    volume: Float,
+    onVolumeChange: (Float) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.VolumeDown, contentDescription = "Low Volume")
+                Slider(
+                    value = volume,
+                    onValueChange = onVolumeChange,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(Icons.Default.VolumeUp, contentDescription = "High Volume")
+            }
+            Text(
+                text = "System Media Volume",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -106,5 +163,9 @@ fun SoundGauge(
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
 fun DashboardPreview() {
-    DashboardScreen(currentDbLevel = "65.2")
+    DashboardScreen(
+        currentDbLevel = "65.2",
+        currentMediaVolume = 0.5f,
+        onVolumeChange = {}
+    )
 }

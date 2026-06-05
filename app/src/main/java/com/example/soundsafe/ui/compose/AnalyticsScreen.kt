@@ -205,20 +205,51 @@ fun SoundLineGraph(
                 textLayoutResult = textLayout,
                 topLeft = Offset(leftPadding - textLayout.size.width - 10f, yPos - textLayout.size.height / 2f)
             )
-            // Optional subtle guide line
             drawLine(Color.LightGray.copy(alpha = 0.2f), Offset(leftPadding, yPos), Offset(widthPx, yPos), 1f)
         }
 
-        // X-Axis Labels (Daily Time Slots)
-        if (selectedTimeFrame == "Daily") {
-            val timeLabels = listOf("12 PM", "3 PM", "6 PM", "9 PM", "12 AM")
-            timeLabels.forEachIndexed { index, label ->
-                val xPos = leftPadding + (index * (chartWidth / (timeLabels.size - 1)))
-                val textLayout = textMeasurer.measure(label, style = labelStyle)
-                drawText(
-                    textLayoutResult = textLayout,
-                    topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
-                )
+        // X-Axis Labels
+        when (selectedTimeFrame) {
+            "Daily" -> {
+                val timeLabels = listOf("12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM", "12 AM")
+                timeLabels.forEachIndexed { index, label ->
+                    val xPos = leftPadding + (index * (chartWidth / (timeLabels.size - 1)))
+                    val textLayout = textMeasurer.measure(label, style = labelStyle)
+                    drawText(
+                        textLayoutResult = textLayout,
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                    )
+                }
+            }
+            "Weekly" -> {
+                val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                dayLabels.forEachIndexed { index, label ->
+                    val xPos = leftPadding + (index * (chartWidth / 6f))
+                    val textLayout = textMeasurer.measure(label, style = labelStyle)
+                    drawText(
+                        textLayoutResult = textLayout,
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                    )
+                }
+            }
+            "Monthly" -> {
+                val calendar = Calendar.getInstance()
+                val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+                // Anti-clutter: Show labels every 5 days + last day
+                val labelsToShow = (1..totalDaysInMonth step 5).toMutableList()
+                if (labelsToShow.last() != totalDaysInMonth) {
+                    labelsToShow.add(totalDaysInMonth)
+                }
+
+                labelsToShow.forEach { day ->
+                    val xPos = leftPadding + ((day - 1) / (totalDaysInMonth - 1).toFloat()) * chartWidth
+                    val textLayout = textMeasurer.measure(day.toString(), style = labelStyle)
+                    drawText(
+                        textLayoutResult = textLayout,
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                    )
+                }
             }
         }
 
@@ -232,35 +263,43 @@ fun SoundLineGraph(
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
         )
 
-        // Plot Data with Time-Based X mapping for Daily
+        // Plot Data
         if (dataValues.isNotEmpty()) {
             val path = Path()
             val points = mutableListOf<Offset>()
 
-            dataRecords.forEachIndexed { index, record ->
+            dataRecords.forEach { record ->
                 val db = record.dbLevel.toFloatOrNull() ?: 0f
                 val y = chartHeight - ((db / maxYThreshold) * chartHeight)
 
-                val x = if (selectedTimeFrame == "Daily") {
-                    val timeParts = record.time.split(":")
-                    if (timeParts.size >= 2) {
-                        val hours = timeParts[0].toInt()
-                        val minutes = timeParts[1].toInt()
-                        // Normalize to a 12-hour window (12 PM to 12 AM)
-                        val totalMinutesFromNoon = (hours - 12) * 60 + minutes
-                        val normalizedX = totalMinutesFromNoon.toFloat() / (12 * 60)
-                        leftPadding + (normalizedX.coerceIn(0f, 1f) * chartWidth)
-                    } else {
-                        leftPadding + (index.toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
+                val x = when (selectedTimeFrame) {
+                    "Daily" -> {
+                        val timeParts = record.time.split(":")
+                        if (timeParts.size >= 2) {
+                            val hours = timeParts[0].toInt()
+                            val minutes = timeParts[1].toInt()
+                            val totalMinutes = hours * 60 + minutes
+                            leftPadding + (totalMinutes.toFloat() / 1440f) * chartWidth
+                        } else leftPadding
                     }
-                } else {
-                    leftPadding + (index.toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
+                    "Weekly" -> {
+                        // For Weekly, we mock day mapping since SoundRecord only has time.
+                        // In a real app, SoundRecord would have a Date.
+                        val dayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
+                        leftPadding + (dayIndex / 6f) * chartWidth
+                    }
+                    "Monthly" -> {
+                        val calendar = Calendar.getInstance()
+                        val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
+                        leftPadding + ((dayOfMonth - 1) / (totalDaysInMonth - 1).toFloat()) * chartWidth
+                    }
+                    else -> leftPadding + (dataRecords.indexOf(record).toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
                 }
                 points.add(Offset(x, y))
             }
 
             if (points.size > 1) {
-                // Sort points by X for Bézier continuity
                 points.sortBy { it.x }
 
                 path.moveTo(points[0].x, points[0].y)
@@ -272,7 +311,6 @@ fun SoundLineGraph(
                     path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                 }
 
-                // Gradient Fill
                 val fillPath = android.graphics.Path(path.asAndroidPath())
                 fillPath.lineTo(points.last().x, chartHeight)
                 fillPath.lineTo(points.first().x, chartHeight)
@@ -287,7 +325,6 @@ fun SoundLineGraph(
                     )
                 )
 
-                // Line Path
                 drawPath(
                     path = path,
                     color = Color.Blue.copy(alpha = 0.8f),

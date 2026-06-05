@@ -33,8 +33,6 @@ fun SoundSafeApp(
     soundLog: List<SoundRecord>,
     selectedTimeFrame: String,
     onTimeFrameSelected: (String) -> Unit,
-    currentMediaVolume: Float,
-    onVolumeChange: (Float) -> Unit,
     isDarkModeEnabled: Boolean,
     onThemeToggle: (Boolean) -> Unit,
     isRecording: Boolean,
@@ -80,8 +78,6 @@ fun SoundSafeApp(
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         currentDbLevel = currentDbLevel,
-                        currentMediaVolume = currentMediaVolume,
-                        onVolumeChange = onVolumeChange,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording
                     )
@@ -120,8 +116,6 @@ fun SoundSafeAppPreview() {
         ),
         selectedTimeFrame = "Daily",
         onTimeFrameSelected = {},
-        currentMediaVolume = 0.5f,
-        onVolumeChange = {},
         isDarkModeEnabled = false,
         onThemeToggle = {},
         isRecording = true,

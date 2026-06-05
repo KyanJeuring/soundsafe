@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
     private var currentDbLevel by mutableStateOf("0.0")
     private val soundLog = mutableStateListOf<SoundRecord>()
     private var selectedTimeFrame by mutableStateOf("Daily")
-    private var currentMediaVolume by mutableStateOf(0.5f)
     private var isDarkModeEnabled by mutableStateOf(false)
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
@@ -82,13 +81,6 @@ class MainActivity : ComponentActivity() {
                 soundLog = soundLog,
                 selectedTimeFrame = selectedTimeFrame,
                 onTimeFrameSelected = { selectedTimeFrame = it },
-                currentMediaVolume = currentMediaVolume,
-                onVolumeChange = {
-                    currentMediaVolume = it
-                    // Manual adjustment disables automatic volume
-                    isAutoMediaEnabled = false
-                    prefs.edit().putBoolean("auto_media_enabled", false).apply()
-                },
                 isDarkModeEnabled = isDarkModeEnabled,
                 onThemeToggle = {
                     isDarkModeEnabled = it

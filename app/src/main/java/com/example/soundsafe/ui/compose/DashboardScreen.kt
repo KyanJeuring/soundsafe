@@ -6,20 +6,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeDown
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,14 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-
 @Composable
 fun DashboardScreen(
     currentDbLevel: String,
-    currentMediaVolume: Float,
-    onVolumeChange: (Float) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit
 ) {
@@ -73,13 +63,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        VolumeController(
-            volume = currentMediaVolume,
-            onVolumeChange = onVolumeChange
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         Button(
             onClick = onToggleRecording,
             modifier = Modifier.fillMaxWidth(),
@@ -90,45 +73,6 @@ fun DashboardScreen(
             }
         ) {
             Text(if (isRecording) "Stop Recording" else "Resume Recording")
-        }
-    }
-}
-
-@Composable
-fun VolumeController(
-    volume: Float,
-    onVolumeChange: (Float) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Low Volume")
-                Slider(
-                    value = volume,
-                    onValueChange = {
-                        onVolumeChange(it)
-                        // TODO: Triggering this should disable the Automatic Volume feature in the backend logic.
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "High Volume")
-            }
-            Text(
-                text = "System Media Volume",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -188,8 +132,6 @@ fun SoundGauge(
 fun DashboardPreview() {
     DashboardScreen(
         currentDbLevel = "65.2",
-        currentMediaVolume = 0.5f,
-        onVolumeChange = {},
         isRecording = true,
         onToggleRecording = {}
     )

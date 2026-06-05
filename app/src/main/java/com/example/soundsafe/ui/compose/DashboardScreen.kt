@@ -6,16 +6,16 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,13 +31,17 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.Row
+
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 
 @Composable
 fun DashboardScreen(
     currentDbLevel: String,
     currentMediaVolume: Float,
-    onVolumeChange: (Float) -> Unit
+    onVolumeChange: (Float) -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit
 ) {
     val dbValue = currentDbLevel.toDoubleOrNull() ?: 0.0
 
@@ -65,12 +69,26 @@ fun DashboardScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         VolumeController(
             volume = currentMediaVolume,
             onVolumeChange = onVolumeChange
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onToggleRecording,
+            modifier = Modifier.fillMaxWidth(),
+            colors = if (isRecording) {
+                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+            } else {
+                ButtonDefaults.buttonColors()
+            }
+        ) {
+            Text(if (isRecording) "Stop Monitoring" else "Start Monitoring")
+        }
     }
 }
 
@@ -93,13 +111,16 @@ fun VolumeController(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.VolumeDown, contentDescription = "Low Volume")
+                Icon(Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Low Volume")
                 Slider(
                     value = volume,
-                    onValueChange = onVolumeChange,
+                    onValueChange = {
+                        onVolumeChange(it)
+                        // TODO: Triggering this should disable the Automatic Volume feature in the backend logic.
+                    },
                     modifier = Modifier.weight(1f)
                 )
-                Icon(Icons.Default.VolumeUp, contentDescription = "High Volume")
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "High Volume")
             }
             Text(
                 text = "System Media Volume",
@@ -166,6 +187,8 @@ fun DashboardPreview() {
     DashboardScreen(
         currentDbLevel = "65.2",
         currentMediaVolume = 0.5f,
-        onVolumeChange = {}
+        onVolumeChange = {},
+        isRecording = true,
+        onToggleRecording = {}
     )
 }

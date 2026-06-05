@@ -31,7 +31,9 @@ class MainActivity : ComponentActivity() {
     // UI States
     private var currentDbLevel by mutableStateOf("0.0")
     private val soundLog = mutableStateListOf<SoundRecord>()
+    private var selectedTimeFrame by mutableStateOf("Daily")
     private var currentMediaVolume by mutableStateOf(0.5f)
+    private var isDarkModeEnabled by mutableStateOf(false)
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
     private var isRecording by mutableStateOf(false)
@@ -72,13 +74,26 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
+        isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
 
         setContent {
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
                 soundLog = soundLog,
+                selectedTimeFrame = selectedTimeFrame,
+                onTimeFrameSelected = { selectedTimeFrame = it },
                 currentMediaVolume = currentMediaVolume,
-                onVolumeChange = { currentMediaVolume = it },
+                onVolumeChange = {
+                    currentMediaVolume = it
+                    // Manual adjustment disables automatic volume
+                    isAutoMediaEnabled = false
+                    prefs.edit().putBoolean("auto_media_enabled", false).apply()
+                },
+                isDarkModeEnabled = isDarkModeEnabled,
+                onThemeToggle = {
+                    isDarkModeEnabled = it
+                    prefs.edit().putBoolean("dark_mode_enabled", it).apply()
+                },
                 isRecording = isRecording,
                 onToggleRecording = { toggleRecording() },
                 isAutoMediaEnabled = isAutoMediaEnabled,
@@ -116,6 +131,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
+        isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
         isRecording = SoundMonitoringService.isRecording
     }
 

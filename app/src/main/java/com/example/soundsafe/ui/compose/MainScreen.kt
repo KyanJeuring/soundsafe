@@ -31,8 +31,12 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun SoundSafeApp(
     currentDbLevel: String,
     soundLog: List<SoundRecord>,
+    selectedTimeFrame: String,
+    onTimeFrameSelected: (String) -> Unit,
     currentMediaVolume: Float,
     onVolumeChange: (Float) -> Unit,
+    isDarkModeEnabled: Boolean,
+    onThemeToggle: (Boolean) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
@@ -43,7 +47,7 @@ fun SoundSafeApp(
     val navController = rememberNavController()
     val screens = listOf(Screen.Dashboard, Screen.Analytics, Screen.Settings)
 
-    SoundSafeTheme {
+    SoundSafeTheme(darkTheme = isDarkModeEnabled) {
         Scaffold(
             bottomBar = {
                 NavigationBar {
@@ -77,16 +81,22 @@ fun SoundSafeApp(
                     DashboardScreen(
                         currentDbLevel = currentDbLevel,
                         currentMediaVolume = currentMediaVolume,
-                        onVolumeChange = onVolumeChange
+                        onVolumeChange = onVolumeChange,
+                        isRecording = isRecording,
+                        onToggleRecording = onToggleRecording
                     )
                 }
                 composable(Screen.Analytics.route) {
-                    AnalyticsScreen(soundLog = soundLog)
+                    AnalyticsScreen(
+                        soundLog = soundLog,
+                        selectedTimeFrame = selectedTimeFrame,
+                        onTimeFrameSelected = onTimeFrameSelected
+                    )
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
-                        isRecording = isRecording,
-                        onToggleRecording = onToggleRecording,
+                        isDarkModeEnabled = isDarkModeEnabled,
+                        onThemeToggle = onThemeToggle,
                         isAutoMediaEnabled = isAutoMediaEnabled,
                         onAutoMediaToggle = onAutoMediaToggle,
                         isAutoRingtoneEnabled = isAutoRingtoneEnabled,
@@ -108,8 +118,12 @@ fun SoundSafeAppPreview() {
             SoundRecord("04:35:36", "45.2"),
             SoundRecord("04:35:37", "44.8")
         ),
+        selectedTimeFrame = "Daily",
+        onTimeFrameSelected = {},
         currentMediaVolume = 0.5f,
         onVolumeChange = {},
+        isDarkModeEnabled = false,
+        onThemeToggle = {},
         isRecording = true,
         onToggleRecording = {},
         isAutoMediaEnabled = true,

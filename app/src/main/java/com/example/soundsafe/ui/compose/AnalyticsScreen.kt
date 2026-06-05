@@ -14,22 +14,35 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun AnalyticsScreen(
-    soundLog: List<SoundRecord>
+    soundLog: List<SoundRecord>,
+    selectedTimeFrame: String,
+    onTimeFrameSelected: (String) -> Unit
 ) {
     val avgDb = if (soundLog.isNotEmpty()) {
         soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.average()
@@ -39,11 +52,32 @@ fun AnalyticsScreen(
         soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.maxOrNull() ?: 0.0
     } else 0.0
 
+    val minDb = if (soundLog.isNotEmpty()) {
+        soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.minOrNull() ?: 0.0
+    } else 0.0
+
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
         item {
-            AnalyticsHeader(soundLog = soundLog)
+            TimeFrameSelector(
+                selectedTimeFrame = selectedTimeFrame,
+                onTimeFrameSelected = onTimeFrameSelected
+            )
+        }
+
+        item {
+            val title = when (selectedTimeFrame) {
+                "Daily" -> "Today's Exposure"
+                "Weekly" -> "This Week's Exposure"
+                "Monthly" -> {
+                    val calendar = Calendar.getInstance()
+                    val monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault())
+                    "$monthName's Exposure"
+                }
+                else -> "Exposure Analysis"
+            }
+            AnalyticsHeader(title = title, soundLog = soundLog, selectedTimeFrame = selectedTimeFrame, avgDb = avgDb, maxDb = maxDb, minDb = minDb)
         }
 
         item {
@@ -66,19 +100,54 @@ fun AnalyticsScreen(
 }
 
 @Composable
-fun AnalyticsHeader(soundLog: List<SoundRecord>) {
+fun TimeFrameSelector(
+    selectedTimeFrame: String,
+    onTimeFrameSelected: (String) -> Unit
+) {
+    val options = listOf("Daily", "Weekly", "Monthly")
+    val selectedIndex = options.indexOf(selectedTimeFrame).coerceAtLeast(0)
+
+    TabRow(
+        selectedTabIndex = selectedIndex,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        containerColor = Color.Transparent,
+        divider = {}
+    ) {
+        options.forEachIndexed { index, title ->
+            Tab(
+                selected = selectedIndex == index,
+                onClick = { onTimeFrameSelected(title) },
+                text = { Text(text = title, style = MaterialTheme.typography.labelLarge) }
+            )
+        }
+    }
+}
+
+@Composable
+fun AnalyticsHeader(
+    title: String,
+    soundLog: List<SoundRecord>,
+    selectedTimeFrame: String,
+    avgDb: Double,
+    maxDb: Double,
+    minDb: Double
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(text = "Today's Exposure", style = MaterialTheme.typography.titleLarge)
+        Text(text = title, style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
         SoundLineGraph(
             soundLog = soundLog,
+            selectedTimeFrame = selectedTimeFrame,
+            avgDb = avgDb,
+            maxDb = maxDb,
+            minDb = minDb,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(250.dp)
         )
     }
 }
@@ -86,85 +155,146 @@ fun AnalyticsHeader(soundLog: List<SoundRecord>) {
 @Composable
 fun SoundLineGraph(
     soundLog: List<SoundRecord>,
+    selectedTimeFrame: String,
+    avgDb: Double,
+    maxDb: Double,
+    minDb: Double,
     modifier: Modifier = Modifier
 ) {
-    val data = soundLog.reversed().mapNotNull { it.dbLevel.toFloatOrNull() }
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(color = Color.Gray, fontSize = 10.sp)
 
-    // Y-Axis Scaling: max(100f, maxRecord + 10f)
-    val maxRecord = data.maxOrNull() ?: 0f
+    val dataRecords = soundLog.reversed()
+    val dataValues = dataRecords.mapNotNull { it.dbLevel.toFloatOrNull() }
+
+    val maxRecord = dataValues.maxOrNull() ?: 0f
     val maxYThreshold = maxOf(100f, maxRecord + 10f)
 
     Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        val padding = 40f
-        val chartWidth = width - padding
-        val chartHeight = height - padding
+        val widthPx = size.width
+        val heightPx = size.height
+        val leftPadding = 80f
+        val bottomPadding = 60f
+        val chartWidth = widthPx - leftPadding
+        val chartHeight = heightPx - bottomPadding
 
-        // Draw Axes
+        // Draw Axes (Subtle Grey)
         drawLine(
-            color = Color.Black,
-            start = Offset(padding, chartHeight),
-            end = Offset(width, chartHeight),
-            strokeWidth = 2f
+            color = Color.LightGray,
+            start = Offset(leftPadding, chartHeight),
+            end = Offset(widthPx, chartHeight),
+            strokeWidth = 1f
         )
         drawLine(
-            color = Color.Black,
-            start = Offset(padding, 0f),
-            end = Offset(padding, chartHeight),
-            strokeWidth = 2f
+            color = Color.LightGray,
+            start = Offset(leftPadding, 0f),
+            end = Offset(leftPadding, chartHeight),
+            strokeWidth = 1f
         )
+
+        // Y-Axis Labels (Max, Avg, Min)
+        val yLabels = listOf(
+            maxDb.toFloat() to "%.0f".format(maxDb),
+            avgDb.toFloat() to "%.0f".format(avgDb),
+            minDb.toFloat() to "%.0f".format(minDb)
+        )
+        yLabels.forEach { (value, label) ->
+            val yPos = chartHeight - ((value / maxYThreshold) * chartHeight)
+            val textLayout = textMeasurer.measure(label, style = labelStyle)
+            drawText(
+                textLayoutResult = textLayout,
+                topLeft = Offset(leftPadding - textLayout.size.width - 10f, yPos - textLayout.size.height / 2f)
+            )
+            // Optional subtle guide line
+            drawLine(Color.LightGray.copy(alpha = 0.2f), Offset(leftPadding, yPos), Offset(widthPx, yPos), 1f)
+        }
+
+        // X-Axis Labels (Daily Time Slots)
+        if (selectedTimeFrame == "Daily") {
+            val timeLabels = listOf("12 PM", "3 PM", "6 PM", "9 PM", "12 AM")
+            timeLabels.forEachIndexed { index, label ->
+                val xPos = leftPadding + (index * (chartWidth / (timeLabels.size - 1)))
+                val textLayout = textMeasurer.measure(label, style = labelStyle)
+                drawText(
+                    textLayoutResult = textLayout,
+                    topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                )
+            }
+        }
 
         // Draw Warning Line (85dB)
         val warningY = chartHeight - ((85f / maxYThreshold) * chartHeight)
         drawLine(
-            color = Color.Red,
-            start = Offset(padding, warningY),
-            end = Offset(width, warningY),
-            strokeWidth = 2f,
+            color = Color.Red.copy(alpha = 0.3f),
+            start = Offset(leftPadding, warningY),
+            end = Offset(widthPx, warningY),
+            strokeWidth = 1.5f,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
         )
 
-        drawContext.canvas.nativeCanvas.drawText(
-            "Warning (85dB)",
-            padding + 10f,
-            warningY - 10f,
-            android.graphics.Paint().apply {
-                color = android.graphics.Color.RED
-                textSize = 30f
-            }
-        )
-
-        // Plot Data
-        if (data.isNotEmpty()) {
-            val xStep = if (data.size > 1) chartWidth / (data.size - 1) else 0f
+        // Plot Data with Time-Based X mapping for Daily
+        if (dataValues.isNotEmpty()) {
             val path = Path()
+            val points = mutableListOf<Offset>()
 
-            data.forEachIndexed { index, db ->
-                val x = padding + (index * xStep)
+            dataRecords.forEachIndexed { index, record ->
+                val db = record.dbLevel.toFloatOrNull() ?: 0f
                 val y = chartHeight - ((db / maxYThreshold) * chartHeight)
 
-                // 1. Path Connection
-                if (index == 0) {
-                    path.moveTo(x, y)
+                val x = if (selectedTimeFrame == "Daily") {
+                    val timeParts = record.time.split(":")
+                    if (timeParts.size >= 2) {
+                        val hours = timeParts[0].toInt()
+                        val minutes = timeParts[1].toInt()
+                        // Normalize to a 12-hour window (12 PM to 12 AM)
+                        val totalMinutesFromNoon = (hours - 12) * 60 + minutes
+                        val normalizedX = totalMinutesFromNoon.toFloat() / (12 * 60)
+                        leftPadding + (normalizedX.coerceIn(0f, 1f) * chartWidth)
+                    } else {
+                        leftPadding + (index.toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
+                    }
                 } else {
-                    path.lineTo(x, y)
+                    leftPadding + (index.toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
                 }
-
-                // 2. Data Nodes (Dots)
-                drawCircle(
-                    color = Color.Blue,
-                    radius = 8f,
-                    center = Offset(x, y)
-                )
+                points.add(Offset(x, y))
             }
 
-            if (data.size > 1) {
+            if (points.size > 1) {
+                // Sort points by X for Bézier continuity
+                points.sortBy { it.x }
+
+                path.moveTo(points[0].x, points[0].y)
+                for (i in 0 until points.size - 1) {
+                    val p0 = points[i]
+                    val p1 = points[i + 1]
+                    val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2f, p0.y)
+                    val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2f, p1.y)
+                    path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                }
+
+                // Gradient Fill
+                val fillPath = android.graphics.Path(path.asAndroidPath())
+                fillPath.lineTo(points.last().x, chartHeight)
+                fillPath.lineTo(points.first().x, chartHeight)
+                fillPath.close()
+
+                drawPath(
+                    path = fillPath.asComposePath(),
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Blue.copy(alpha = 0.2f), Color.Transparent),
+                        startY = 0f,
+                        endY = chartHeight
+                    )
+                )
+
+                // Line Path
                 drawPath(
                     path = path,
-                    color = Color.Blue.copy(alpha = 0.7f),
-                    style = Stroke(width = 4f)
+                    color = Color.Blue.copy(alpha = 0.8f),
+                    style = Stroke(width = 3f, cap = StrokeCap.Round)
                 )
+            } else if (points.size == 1) {
+                drawCircle(color = Color.Blue, radius = 4f, center = points[0])
             }
         }
     }

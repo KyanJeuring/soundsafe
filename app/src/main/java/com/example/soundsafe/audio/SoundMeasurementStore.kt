@@ -22,6 +22,7 @@ object SoundMeasurementStore {
             )
 
             if (measurements.size > MAX_MEASUREMENTS) {
+                // remove oldest entries to bound memory
                 val toRemove = measurements.size - MAX_MEASUREMENTS
                 for (i in 0 until toRemove) {
                     measurements.removeAt(0)

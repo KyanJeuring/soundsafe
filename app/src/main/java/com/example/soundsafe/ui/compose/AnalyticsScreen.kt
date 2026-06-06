@@ -18,6 +18,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,28 +35,23 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.soundsafe.ui.viewmodel.AnalyticsViewModel
 import java.util.Calendar
 import java.util.Locale
 
 @Composable
 fun AnalyticsScreen(
-    soundLog: List<SoundRecord>,
-    selectedTimeFrame: String,
-    onTimeFrameSelected: (String) -> Unit
+    viewModel: AnalyticsViewModel = viewModel()
 ) {
-    val avgDb = if (soundLog.isNotEmpty()) {
-        soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.average()
-    } else 0.0
-
-    val maxDb = if (soundLog.isNotEmpty()) {
-        soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.maxOrNull() ?: 0.0
-    } else 0.0
-
-    val minDb = if (soundLog.isNotEmpty()) {
-        soundLog.mapNotNull { it.dbLevel.toDoubleOrNull() }.minOrNull() ?: 0.0
-    } else 0.0
+    val soundLog by viewModel.soundLog.collectAsState()
+    val selectedTimeFrame by viewModel.selectedTimeFrame.collectAsState()
+    val avgDb by viewModel.avgDb.collectAsState()
+    val maxDb by viewModel.maxDb.collectAsState()
+    val minDb by viewModel.minDb.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize()
@@ -62,7 +59,7 @@ fun AnalyticsScreen(
         item {
             TimeFrameSelector(
                 selectedTimeFrame = selectedTimeFrame,
-                onTimeFrameSelected = onTimeFrameSelected
+                onTimeFrameSelected = { viewModel.onTimeFrameSelected(it) }
             )
         }
 
@@ -77,7 +74,14 @@ fun AnalyticsScreen(
                 }
                 else -> "Exposure Analysis"
             }
-            AnalyticsHeader(title = title, soundLog = soundLog, selectedTimeFrame = selectedTimeFrame, avgDb = avgDb, maxDb = maxDb, minDb = minDb)
+            AnalyticsHeader(
+                title = title,
+                soundLog = soundLog,
+                selectedTimeFrame = selectedTimeFrame,
+                avgDb = avgDb,
+                maxDb = maxDb,
+                minDb = minDb
+            )
         }
 
         item {
@@ -92,7 +96,7 @@ fun AnalyticsScreen(
             )
         }
 
-        items(soundLog) { record ->
+        items(soundLog.reversed()) { record ->
             SoundLogItem(record)
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
@@ -138,7 +142,7 @@ fun AnalyticsHeader(
             .padding(16.dp)
     ) {
         Text(text = title, style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         SoundLineGraph(
             soundLog = soundLog,
             selectedTimeFrame = selectedTimeFrame,
@@ -147,7 +151,7 @@ fun AnalyticsHeader(
             minDb = minDb,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp)
+                .height(300.dp)
         )
     }
 }
@@ -162,53 +166,86 @@ fun SoundLineGraph(
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(color = Color.Gray, fontSize = 10.sp)
+    val labelStyle = TextStyle(
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 10.sp
+    )
+    val axisLabelStyle = TextStyle(
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold
+    )
 
-    val dataRecords = soundLog.reversed()
-    val dataValues = dataRecords.mapNotNull { it.dbLevel.toFloatOrNull() }
+    val maxRecord = soundLog.maxOfOrNull { it.dbLevel } ?: 0.0
+    // Y-axis must always include 85dB and some padding
+    val maxYLimit = maxOf(100.0, maxRecord + 10.0).toFloat()
 
-    val maxRecord = dataValues.maxOrNull() ?: 0f
-    val maxYThreshold = maxOf(100f, maxRecord + 10f)
+    // Fixed intervals of 10 dB as per requirements (starting from 10, 20... up to maxYLimit)
+    val ySteps = (10..maxYLimit.toInt() step 10).toList()
 
+    val outlineColor = MaterialTheme.colorScheme.outline
     Canvas(modifier = modifier) {
         val widthPx = size.width
         val heightPx = size.height
-        val leftPadding = 80f
-        val bottomPadding = 60f
-        val chartWidth = widthPx - leftPadding
-        val chartHeight = heightPx - bottomPadding
 
-        // Draw Axes (Subtle Grey)
-        drawLine(
-            color = Color.LightGray,
-            start = Offset(leftPadding, chartHeight),
-            end = Offset(widthPx, chartHeight),
-            strokeWidth = 1f
-        )
-        drawLine(
-            color = Color.LightGray,
-            start = Offset(leftPadding, 0f),
-            end = Offset(leftPadding, chartHeight),
-            strokeWidth = 1f
+        // Proper padding to avoid clipping
+        val leftPadding = 120f
+        val bottomPadding = 100f
+        val rightPadding = 40f
+        val topPadding = 40f
+
+        val chartWidth = widthPx - leftPadding - rightPadding
+        val chartHeight = heightPx - bottomPadding - topPadding
+
+        // 1. Draw Axis Labels
+        // Y-Axis Label: "Decibels (dB SPL)"
+        val yAxisLabelLayout = textMeasurer.measure("Decibels (dB SPL)", style = axisLabelStyle)
+        // We could rotate this, but for simplicity let's place it at the top or side.
+        // Requirements say labels must be visible and not overlap.
+        drawText(
+            textLayoutResult = yAxisLabelLayout,
+            topLeft = Offset(10f, topPadding - yAxisLabelLayout.size.height - 10f)
         )
 
-        // Y-Axis Labels (Max, Avg, Min)
-        val yLabels = listOf(
-            maxDb.toFloat() to "%.0f".format(maxDb),
-            avgDb.toFloat() to "%.0f".format(avgDb),
-            minDb.toFloat() to "%.0f".format(minDb)
+        // X-Axis Label
+        val xAxisLabel = when (selectedTimeFrame) {
+            "Daily" -> "Time"
+            "Weekly" -> "Day of Week"
+            "Monthly" -> "Day of Month"
+            else -> ""
+        }
+        val xAxisLabelLayout = textMeasurer.measure(xAxisLabel, style = axisLabelStyle)
+        drawText(
+            textLayoutResult = xAxisLabelLayout,
+            topLeft = Offset(leftPadding + chartWidth / 2f - xAxisLabelLayout.size.width / 2f, heightPx - 40f)
         )
-        yLabels.forEach { (value, label) ->
-            val yPos = chartHeight - ((value / maxYThreshold) * chartHeight)
-            val textLayout = textMeasurer.measure(label, style = labelStyle)
-            drawText(
-                textLayoutResult = textLayout,
-                topLeft = Offset(leftPadding - textLayout.size.width - 10f, yPos - textLayout.size.height / 2f)
-            )
-            drawLine(Color.LightGray.copy(alpha = 0.2f), Offset(leftPadding, yPos), Offset(widthPx, yPos), 1f)
+
+        // 2. Draw Y-Axis and Labels (5 or 10 dB increments)
+        // Using 10dB increments for cleaner look, but can do 5dB if specifically requested.
+        // User asked for 10, 15, 20... so 5dB increments.
+        val yIncrements = (0..maxYLimit.toInt() step 5).toList()
+        yIncrements.forEach { db ->
+            if (db % 10 == 0 || db == 85) { // Show labels for 10s and the warning 85
+                val yPos = topPadding + chartHeight - ((db / maxYLimit) * chartHeight)
+                val labelText = db.toString()
+                val textLayout = textMeasurer.measure(labelText, style = labelStyle)
+                drawText(
+                    textLayoutResult = textLayout,
+                    topLeft = Offset(leftPadding - textLayout.size.width - 20f, yPos - textLayout.size.height / 2f)
+                )
+
+                // Draw grid line
+                drawLine(
+                    color = Color.LightGray.copy(alpha = 0.2f),
+                    start = Offset(leftPadding, yPos),
+                    end = Offset(leftPadding + chartWidth, yPos),
+                    strokeWidth = 1f
+                )
+            }
         }
 
-        // X-Axis Labels
+        // 3. Draw X-Axis Labels
+        val calendar = Calendar.getInstance()
         when (selectedTimeFrame) {
             "Daily" -> {
                 val timeLabels = listOf("12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM", "12 AM")
@@ -217,7 +254,7 @@ fun SoundLineGraph(
                     val textLayout = textMeasurer.measure(label, style = labelStyle)
                     drawText(
                         textLayoutResult = textLayout,
-                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, topPadding + chartHeight + 15f)
                     )
                 }
             }
@@ -228,81 +265,75 @@ fun SoundLineGraph(
                     val textLayout = textMeasurer.measure(label, style = labelStyle)
                     drawText(
                         textLayoutResult = textLayout,
-                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, topPadding + chartHeight + 15f)
                     )
                 }
             }
             "Monthly" -> {
-                val calendar = Calendar.getInstance()
                 val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-                // Anti-clutter: Show labels every 5 days + last day
                 val labelsToShow = (1..totalDaysInMonth step 5).toMutableList()
-                if (labelsToShow.last() != totalDaysInMonth) {
-                    labelsToShow.add(totalDaysInMonth)
-                }
+                if (labelsToShow.last() != totalDaysInMonth) labelsToShow.add(totalDaysInMonth)
 
                 labelsToShow.forEach { day ->
                     val xPos = leftPadding + ((day - 1) / (totalDaysInMonth - 1).toFloat()) * chartWidth
                     val textLayout = textMeasurer.measure(day.toString(), style = labelStyle)
                     drawText(
                         textLayoutResult = textLayout,
-                        topLeft = Offset(xPos - textLayout.size.width / 2f, chartHeight + 10f)
+                        topLeft = Offset(xPos - textLayout.size.width / 2f, topPadding + chartHeight + 15f)
                     )
                 }
             }
         }
 
-        // Draw Warning Line (85dB)
-        val warningY = chartHeight - ((85f / maxYThreshold) * chartHeight)
+        // 4. Draw Warning Line (85dB)
+        val warningY = topPadding + chartHeight - ((85f / maxYLimit) * chartHeight)
         drawLine(
-            color = Color.Red.copy(alpha = 0.3f),
+            color = Color.Red.copy(alpha = 0.6f),
             start = Offset(leftPadding, warningY),
-            end = Offset(widthPx, warningY),
-            strokeWidth = 1.5f,
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+            end = Offset(leftPadding + chartWidth, warningY),
+            strokeWidth = 2f,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f))
+        )
+        val warningLabelLayout = textMeasurer.measure("Warning (85 dB)", style = TextStyle(color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+        drawText(
+            textLayoutResult = warningLabelLayout,
+            topLeft = Offset(leftPadding + chartWidth - warningLabelLayout.size.width - 5f, warningY - warningLabelLayout.size.height - 2f)
         )
 
-        // Plot Data
-        if (dataValues.isNotEmpty()) {
-            val path = Path()
-            val points = mutableListOf<Offset>()
-
-            dataRecords.forEach { record ->
-                val db = record.dbLevel.toFloatOrNull() ?: 0f
-                val y = chartHeight - ((db / maxYThreshold) * chartHeight)
-
+        // 5. Plot Data
+        if (soundLog.isNotEmpty()) {
+            val points = soundLog.map { record ->
                 val x = when (selectedTimeFrame) {
                     "Daily" -> {
-                        val timeParts = record.time.split(":")
-                        if (timeParts.size >= 2) {
-                            val hours = timeParts[0].toInt()
-                            val minutes = timeParts[1].toInt()
-                            val totalMinutes = hours * 60 + minutes
-                            leftPadding + (totalMinutes.toFloat() / 1440f) * chartWidth
-                        } else leftPadding
+                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
+                        val hours = cal.get(Calendar.HOUR_OF_DAY)
+                        val minutes = cal.get(Calendar.MINUTE)
+                        val totalMinutes = hours * 60 + minutes
+                        leftPadding + (totalMinutes.toFloat() / 1440f) * chartWidth
                     }
                     "Weekly" -> {
-                        // For Weekly, we mock day mapping since SoundRecord only has time.
-                        // In a real app, SoundRecord would have a Date.
-                        val dayIndex = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
-                        leftPadding + (dayIndex / 6f) * chartWidth
+                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
+                        // Monday is first day of week in many locales, let's normalize to Mon=0
+                        val dayOfWeek = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7
+                        leftPadding + (dayOfWeek / 6f) * chartWidth
                     }
                     "Monthly" -> {
-                        val calendar = Calendar.getInstance()
-                        val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-                        val dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH)
-                        leftPadding + ((dayOfMonth - 1) / (totalDaysInMonth - 1).toFloat()) * chartWidth
+                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
+                        val dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
+                        val totalDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                        leftPadding + ((dayOfMonth - 1) / (totalDays - 1).toFloat()) * chartWidth
                     }
-                    else -> leftPadding + (dataRecords.indexOf(record).toFloat() / (dataValues.size - 1).coerceAtLeast(1) * chartWidth)
+                    else -> leftPadding
                 }
-                points.add(Offset(x, y))
-            }
+                val y = topPadding + chartHeight - ((record.dbLevel.toFloat() / maxYLimit) * chartHeight)
+                Offset(x, y)
+            }.sortedBy { it.x }
 
             if (points.size > 1) {
-                points.sortBy { it.x }
-
+                val path = Path()
                 path.moveTo(points[0].x, points[0].y)
+
+                // Quadratic bezier for smoothing
                 for (i in 0 until points.size - 1) {
                     val p0 = points[i]
                     val p1 = points[i + 1]
@@ -311,29 +342,45 @@ fun SoundLineGraph(
                     path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                 }
 
+                // Draw Gradient Fill
                 val fillPath = android.graphics.Path(path.asAndroidPath())
-                fillPath.lineTo(points.last().x, chartHeight)
-                fillPath.lineTo(points.first().x, chartHeight)
+                fillPath.lineTo(points.last().x, topPadding + chartHeight)
+                fillPath.lineTo(points.first().x, topPadding + chartHeight)
                 fillPath.close()
 
                 drawPath(
                     path = fillPath.asComposePath(),
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.Blue.copy(alpha = 0.2f), Color.Transparent),
-                        startY = 0f,
-                        endY = chartHeight
+                        colors = listOf(Color.Blue.copy(alpha = 0.3f), Color.Transparent),
+                        startY = topPadding,
+                        endY = topPadding + chartHeight
                     )
                 )
 
+                // Draw Line
                 drawPath(
                     path = path,
-                    color = Color.Blue.copy(alpha = 0.8f),
+                    color = Color.Blue,
                     style = Stroke(width = 3f, cap = StrokeCap.Round)
                 )
             } else if (points.size == 1) {
-                drawCircle(color = Color.Blue, radius = 4f, center = points[0])
+                drawCircle(color = Color.Blue, radius = 6f, center = points[0])
             }
         }
+
+        // 6. Draw Main Axes (Final touch for centering look)
+        drawLine(
+            color = outlineColor,
+            start = Offset(leftPadding, topPadding),
+            end = Offset(leftPadding, topPadding + chartHeight),
+            strokeWidth = 2f
+        )
+        drawLine(
+            color = outlineColor,
+            start = Offset(leftPadding, topPadding + chartHeight),
+            end = Offset(leftPadding + chartWidth, topPadding + chartHeight),
+            strokeWidth = 2f
+        )
     }
 }
 
@@ -375,6 +422,6 @@ fun SoundLogItem(record: SoundRecord) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = record.time)
-        Text(text = "${record.dbLevel} dB SPL")
+        Text(text = "${"%.1f".format(record.dbLevel)} dB SPL")
     }
 }

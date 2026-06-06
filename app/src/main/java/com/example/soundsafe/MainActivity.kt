@@ -13,23 +13,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.example.soundsafe.audio.SoundMeasurementStore
 import com.example.soundsafe.audio.SoundMonitoringService
-import com.example.soundsafe.ui.compose.SoundRecord
 import com.example.soundsafe.ui.compose.SoundSafeApp
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
     // UI States
-    private var selectedTimeFrame by mutableStateOf("Daily")
     private var isDarkModeEnabled by mutableStateOf(false)
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
@@ -74,21 +68,8 @@ class MainActivity : ComponentActivity() {
                 } else "0.0"
             }
 
-            val soundLog = remember(measurements) {
-                val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                measurements.asReversed().map {
-                    SoundRecord(
-                        time = timeFormat.format(Date(it.timestamp)),
-                        dbLevel = "%.1f".format(it.smoothedDecibels)
-                    )
-                }
-            }
-
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
-                soundLog = soundLog,
-                selectedTimeFrame = selectedTimeFrame,
-                onTimeFrameSelected = { selectedTimeFrame = it },
                 isDarkModeEnabled = isDarkModeEnabled,
                 onThemeToggle = {
                     isDarkModeEnabled = it

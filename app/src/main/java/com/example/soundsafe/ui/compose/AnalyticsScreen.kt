@@ -96,7 +96,7 @@ fun AnalyticsScreen(
         }
 
         items(soundLog.reversed()) { record ->
-            SoundLogItem(record)
+            SoundLogItem(record, selectedTimeFrame)
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
         }
     }
@@ -413,14 +413,15 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SoundLogItem(record: SoundRecord) {
+fun SoundLogItem(record: SoundRecord, selectedTimeFrame: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = record.time)
+        val displayTime = if (selectedTimeFrame == "Daily") record.time else record.dateTime
+        Text(text = displayTime)
         Text(text = "${"%.1f".format(record.dbLevel)} dB SPL")
     }
 }

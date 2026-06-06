@@ -30,9 +30,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @Composable
 fun SoundSafeApp(
     currentDbLevel: String,
-    soundLog: List<SoundRecord>,
-    selectedTimeFrame: String,
-    onTimeFrameSelected: (String) -> Unit,
     isDarkModeEnabled: Boolean,
     onThemeToggle: (Boolean) -> Unit,
     isRecording: Boolean,
@@ -83,11 +80,7 @@ fun SoundSafeApp(
                     )
                 }
                 composable(Screen.Analytics.route) {
-                    AnalyticsScreen(
-                        soundLog = soundLog,
-                        selectedTimeFrame = selectedTimeFrame,
-                        onTimeFrameSelected = onTimeFrameSelected
-                    )
+                    AnalyticsScreen()
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
@@ -109,13 +102,6 @@ fun SoundSafeApp(
 fun SoundSafeAppPreview() {
     SoundSafeApp(
         currentDbLevel = "45.5",
-        soundLog = listOf(
-            SoundRecord("04:35:35", "46.6"),
-            SoundRecord("04:35:36", "45.2"),
-            SoundRecord("04:35:37", "44.8")
-        ),
-        selectedTimeFrame = "Daily",
-        onTimeFrameSelected = {},
         isDarkModeEnabled = false,
         onThemeToggle = {},
         isRecording = true,

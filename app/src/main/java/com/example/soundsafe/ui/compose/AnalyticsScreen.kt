@@ -35,7 +35,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -142,13 +141,17 @@ fun AnalyticsHeader(
             .padding(16.dp)
     ) {
         Text(text = title, style = MaterialTheme.typography.titleLarge)
+        if (selectedTimeFrame != "Daily") {
+            Text(
+                text = "Showing daily averages",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Spacer(modifier = Modifier.height(16.dp))
         SoundLineGraph(
             soundLog = soundLog,
             selectedTimeFrame = selectedTimeFrame,
-            avgDb = avgDb,
-            maxDb = maxDb,
-            minDb = minDb,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(300.dp)
@@ -160,9 +163,6 @@ fun AnalyticsHeader(
 fun SoundLineGraph(
     soundLog: List<SoundRecord>,
     selectedTimeFrame: String,
-    avgDb: Double,
-    maxDb: Double,
-    minDb: Double,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -179,9 +179,6 @@ fun SoundLineGraph(
     val maxRecord = soundLog.maxOfOrNull { it.dbLevel } ?: 0.0
     // Y-axis must always include 85dB and some padding
     val maxYLimit = maxOf(100.0, maxRecord + 10.0).toFloat()
-
-    // Fixed intervals of 10 dB as per requirements (starting from 10, 20... up to maxYLimit)
-    val ySteps = (10..maxYLimit.toInt() step 10).toList()
 
     val outlineColor = MaterialTheme.colorScheme.outline
     Canvas(modifier = modifier) {
@@ -200,8 +197,6 @@ fun SoundLineGraph(
         // 1. Draw Axis Labels
         // Y-Axis Label: "Decibels (dB SPL)"
         val yAxisLabelLayout = textMeasurer.measure("Decibels (dB SPL)", style = axisLabelStyle)
-        // We could rotate this, but for simplicity let's place it at the top or side.
-        // Requirements say labels must be visible and not overlap.
         drawText(
             textLayoutResult = yAxisLabelLayout,
             topLeft = Offset(10f, topPadding - yAxisLabelLayout.size.height - 10f)
@@ -220,9 +215,7 @@ fun SoundLineGraph(
             topLeft = Offset(leftPadding + chartWidth / 2f - xAxisLabelLayout.size.width / 2f, heightPx - 40f)
         )
 
-        // 2. Draw Y-Axis and Labels (5 or 10 dB increments)
-        // Using 10dB increments for cleaner look, but can do 5dB if specifically requested.
-        // User asked for 10, 15, 20... so 5dB increments.
+        // 2. Draw Y-Axis and Labels (5 and 10 dB increments)
         val yIncrements = (0..maxYLimit.toInt() step 5).toList()
         yIncrements.forEach { db ->
             if (db % 10 == 0 || db == 85) { // Show labels for 10s and the warning 85
@@ -261,7 +254,7 @@ fun SoundLineGraph(
             "Weekly" -> {
                 val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
                 dayLabels.forEachIndexed { index, label ->
-                    val xPos = leftPadding + (index * (chartWidth / 6f))
+                    val xPos = leftPadding + (index * (chartWidth / 7f)) // Spaced for 7 days
                     val textLayout = textMeasurer.measure(label, style = labelStyle)
                     drawText(
                         textLayoutResult = textLayout,
@@ -275,7 +268,7 @@ fun SoundLineGraph(
                 if (labelsToShow.last() != totalDaysInMonth) labelsToShow.add(totalDaysInMonth)
 
                 labelsToShow.forEach { day ->
-                    val xPos = leftPadding + ((day - 1) / (totalDaysInMonth - 1).toFloat()) * chartWidth
+                    val xPos = leftPadding + ((day - 1) / totalDaysInMonth.toFloat()) * chartWidth
                     val textLayout = textMeasurer.measure(day.toString(), style = labelStyle)
                     drawText(
                         textLayoutResult = textLayout,
@@ -302,44 +295,52 @@ fun SoundLineGraph(
 
         // 5. Plot Data
         if (soundLog.isNotEmpty()) {
-            val points = soundLog.map { record ->
-                val x = when (selectedTimeFrame) {
-                    "Daily" -> {
-                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
-                        val hours = cal.get(Calendar.HOUR_OF_DAY)
-                        val minutes = cal.get(Calendar.MINUTE)
-                        val totalMinutes = hours * 60 + minutes
-                        leftPadding + (totalMinutes.toFloat() / 1440f) * chartWidth
+            val points = if (selectedTimeFrame == "Daily") {
+                soundLog.map { record ->
+                    val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
+                    val hour = cal.get(Calendar.HOUR_OF_DAY)
+                    val minute = cal.get(Calendar.MINUTE)
+                    val fractionOfDay = (hour * 60 + minute) / 1440f
+                    val x = leftPadding + fractionOfDay * chartWidth
+                    val y = topPadding + chartHeight - ((record.dbLevel.toFloat() / maxYLimit) * chartHeight)
+                    Offset(x, y)
+                }.sortedBy { it.x }
+            } else {
+                // Average by day for Weekly and Monthly
+                soundLog.groupBy { record ->
+                    val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
+                    cal.set(Calendar.HOUR_OF_DAY, 0)
+                    cal.set(Calendar.MINUTE, 0)
+                    cal.set(Calendar.SECOND, 0)
+                    cal.set(Calendar.MILLISECOND, 0)
+                    cal.timeInMillis
+                }.map { (dayTimestamp, records) ->
+                    val avgDbForDay = records.map { it.dbLevel }.average().toFloat()
+                    val cal = Calendar.getInstance().apply { timeInMillis = dayTimestamp }
+                    val x = when (selectedTimeFrame) {
+                        "Weekly" -> {
+                            val dayOfWeek = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Mon=0...Sun=6
+                            leftPadding + (dayOfWeek / 6f) * chartWidth
+                        }
+                        "Monthly" -> {
+                            val dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
+                            val totalDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+                            leftPadding + ((dayOfMonth - 1) / (totalDays - 1).toFloat()) * chartWidth
+                        }
+                        else -> leftPadding
                     }
-                    "Weekly" -> {
-                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
-                        // Monday is first day of week in many locales, let's normalize to Mon=0
-                        val dayOfWeek = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7
-                        leftPadding + (dayOfWeek / 6f) * chartWidth
-                    }
-                    "Monthly" -> {
-                        val cal = Calendar.getInstance().apply { timeInMillis = record.timestamp }
-                        val dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
-                        val totalDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-                        leftPadding + ((dayOfMonth - 1) / (totalDays - 1).toFloat()) * chartWidth
-                    }
-                    else -> leftPadding
-                }
-                val y = topPadding + chartHeight - ((record.dbLevel.toFloat() / maxYLimit) * chartHeight)
-                Offset(x, y)
-            }.sortedBy { it.x }
+                    val y = topPadding + chartHeight - ((avgDbForDay / maxYLimit) * chartHeight)
+                    Offset(x, y)
+                }.sortedBy { it.x }
+            }
 
-            if (points.size > 1) {
+            if (points.isNotEmpty()) {
                 val path = Path()
                 path.moveTo(points[0].x, points[0].y)
 
-                // Quadratic bezier for smoothing
-                for (i in 0 until points.size - 1) {
-                    val p0 = points[i]
-                    val p1 = points[i + 1]
-                    val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2f, p0.y)
-                    val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2f, p1.y)
-                    path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                // Use lineTo for accuracy
+                for (i in 1 until points.size) {
+                    path.lineTo(points[i].x, points[i].y)
                 }
 
                 // Draw Gradient Fill
@@ -363,12 +364,10 @@ fun SoundLineGraph(
                     color = Color.Blue,
                     style = Stroke(width = 3f, cap = StrokeCap.Round)
                 )
-            } else if (points.size == 1) {
-                drawCircle(color = Color.Blue, radius = 6f, center = points[0])
             }
         }
 
-        // 6. Draw Main Axes (Final touch for centering look)
+        // 6. Draw Main Axes
         drawLine(
             color = outlineColor,
             start = Offset(leftPadding, topPadding),

@@ -59,7 +59,10 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
                 calendar.set(Calendar.MILLISECOND, 0)
             }
             "Weekly" -> {
-                calendar.set(Calendar.DAY_OF_WEEK, calendar.firstDayOfWeek)
+                // Ensure Monday is the start
+                val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                val daysToSubtract = (dayOfWeek + 5) % 7 // Mon=0, Tue=1, ..., Sun=6
+                calendar.add(Calendar.DAY_OF_YEAR, -daysToSubtract)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)

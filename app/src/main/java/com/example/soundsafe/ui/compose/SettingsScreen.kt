@@ -47,6 +47,8 @@ fun SettingsScreen(
     onAutoRingtoneToggle: (Boolean) -> Unit
 ) {
     var showTransparencyDialog by remember { mutableStateOf(false) }
+    var showVolumeLogicDialog by remember { mutableStateOf(false) }
+    var showBatteryInfoDialog by remember { mutableStateOf(false) }
 
     if (showTransparencyDialog) {
         AlertDialog(
@@ -59,6 +61,40 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showTransparencyDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
+
+    if (showVolumeLogicDialog) {
+        AlertDialog(
+            onDismissRequest = { showVolumeLogicDialog = false },
+            title = { Text("How auto-volume works") },
+            text = {
+                Text("SoundSafe intelligently scales your device volume based on your surroundings:\n\n" +
+                        "• Smart Mapping: We map ambient noise from 40dB (quiet) to 90dB (loud) into a volume range of 20% to 100%.\n" +
+                        "• Manual Priority: If you manually adjust your volume, auto-adjustment pauses for that stream to give you full control.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showVolumeLogicDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
+
+    if (showBatteryInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatteryInfoDialog = false },
+            title = { Text("Battery & Performance") },
+            text = {
+                Text("SoundSafe is designed to be extremely lightweight:\n\n" +
+                        "• Burst Sampling: We only activate the microphone for 2 seconds every minute.\n" +
+                        "• Efficient Processing: We process simple volume levels rather than complex audio, ensuring minimal impact on your battery life and CPU.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showBatteryInfoDialog = false }) {
                     Text("Got it")
                 }
             }
@@ -87,35 +123,58 @@ fun SettingsScreen(
             onCheckedChange = onAutoRingtoneToggle
         )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        HorizontalDivider()
+
+        SettingsInfoCard(
+            title = "Measurement Transparency",
             onClick = { showTransparencyDialog = true }
+        )
+
+        SettingsInfoCard(
+            title = "Automatic Volume Logic",
+            onClick = { showVolumeLogicDialog = true }
+        )
+
+        SettingsInfoCard(
+            title = "Battery & Performance",
+            onClick = { showBatteryInfoDialog = true }
+        )
+    }
+}
+
+@Composable
+fun SettingsInfoCard(
+    title: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Measurement Transparency",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            IconButton(onClick = onClick) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Info",
+                    tint = MaterialTheme.colorScheme.primary
                 )
-                IconButton(onClick = { showTransparencyDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "Transparency Info",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
         }
     }

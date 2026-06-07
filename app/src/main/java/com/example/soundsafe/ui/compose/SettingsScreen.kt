@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun SettingsScreen(
     selectedTheme: String,
@@ -56,6 +59,7 @@ fun SettingsScreen(
     isAutoRingtoneEnabled: Boolean,
     onAutoRingtoneToggle: (Boolean) -> Unit
 ) {
+    val scrollState = rememberScrollState()
     var showTransparencyDialog by remember { mutableStateOf(false) }
     var showVolumeLogicDialog by remember { mutableStateOf(false) }
     var showBatteryInfoDialog by remember { mutableStateOf(false) }
@@ -117,6 +121,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

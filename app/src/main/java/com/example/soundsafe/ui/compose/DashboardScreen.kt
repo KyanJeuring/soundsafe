@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -90,19 +92,17 @@ fun SoundGauge(
         label = "SweepAngleAnimation"
     )
 
-    val color by animateColorAsState(
-        targetValue = when {
-            coercedValue <= 40f -> Color(0xFF4CAF50) // Green
-            coercedValue <= 65f -> Color(0xFFFF9800) // Orange
-            else -> Color(0xFFF44336) // Red
-        },
-        animationSpec = tween(durationMillis = 500),
-        label = "ColorAnimation"
+    // Fixed gradient colors mapped to the 180-degree sweep
+    val gradientColors = listOf(
+        Color(0xFF2E7D32), // Dark Green
+        Color(0xFF4CAF50), // Light Green
+        Color(0xFFFFEB3B), // Yellow
+        Color(0xFFFF9800), // Orange
+        Color(0xFFF44336)  // Red
     )
 
     Canvas(modifier = modifier) {
         val strokeWidth = size.width * 0.1f
-        // Ensure the arc is centered and fits the width
         val arcSize = size.copy(height = size.width)
 
         // Track Layer (Subtle Light Grey)
@@ -115,9 +115,18 @@ fun SoundGauge(
             size = arcSize
         )
 
-        // Progress Layer (Dynamic Color)
+        // Progress Layer (Revealing Sweep Gradient)
+        // CRITICAL MATH: SweepGradient starts at 0 degrees (3 o'clock).
+        // Our arch starts at 180 degrees (9 o'clock) and sweeps 180 degrees clockwise.
+        // We need to map our colors to the second half of the gradient (0.5 to 1.0).
         drawArc(
-            color = color,
+            brush = Brush.sweepGradient(
+                0.0f to Color.Transparent, // First 180 degrees (3 o'clock to 9 o'clock) are empty
+                0.5f to gradientColors.first(), // 180 degrees (9 o'clock)
+                0.75f to gradientColors[2], // 270 degrees (12 o'clock)
+                1.0f to gradientColors.last(), // 360 degrees (3 o'clock)
+                center = Offset(size.width / 2f, size.width / 2f)
+            ),
             startAngle = 180f,
             sweepAngle = sweepAngle,
             useCenter = false,

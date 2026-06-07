@@ -1,27 +1,33 @@
 package com.example.soundsafe.ui.compose
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -44,7 +50,7 @@ fun DashboardScreen(
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+        verticalArrangement = Arrangement.spacedBy(32.dp, Alignment.CenterVertically)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             SoundGauge(
@@ -63,18 +69,38 @@ fun DashboardScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         Button(
             onClick = onToggleRecording,
-            modifier = Modifier.fillMaxWidth(),
-            colors = if (isRecording) {
-                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
-            } else {
-                ButtonDefaults.buttonColors()
-            }
+            modifier = Modifier
+                .height(56.dp)
+                .fillMaxWidth(0.7f),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                contentColor = if (isRecording) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 4.dp,
+                pressedElevation = 0.dp
+            )
         ) {
-            Text(if (isRecording) "Stop Recording" else "Resume Recording")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
+                    contentDescription = null
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = if (isRecording) "STOP MONITORING" else "RESUME RECORDING",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                )
+            }
         }
     }
 }
@@ -92,7 +118,6 @@ fun SoundGauge(
         label = "SweepAngleAnimation"
     )
 
-    // Fixed gradient colors mapped to the 180-degree sweep
     val gradientColors = listOf(
         Color(0xFF2E7D32), // Dark Green
         Color(0xFF4CAF50), // Light Green
@@ -105,7 +130,6 @@ fun SoundGauge(
         val strokeWidth = size.width * 0.1f
         val arcSize = size.copy(height = size.width)
 
-        // Track Layer (Subtle Light Grey)
         drawArc(
             color = Color.LightGray.copy(alpha = 0.3f),
             startAngle = 180f,
@@ -115,16 +139,12 @@ fun SoundGauge(
             size = arcSize
         )
 
-        // Progress Layer (Revealing Sweep Gradient)
-        // CRITICAL MATH: SweepGradient starts at 0 degrees (3 o'clock).
-        // Our arch starts at 180 degrees (9 o'clock) and sweeps 180 degrees clockwise.
-        // We need to map our colors to the second half of the gradient (0.5 to 1.0).
         drawArc(
             brush = Brush.sweepGradient(
-                0.0f to Color.Transparent, // First 180 degrees (3 o'clock to 9 o'clock) are empty
-                0.5f to gradientColors.first(), // 180 degrees (9 o'clock)
-                0.75f to gradientColors[2], // 270 degrees (12 o'clock)
-                1.0f to gradientColors.last(), // 360 degrees (3 o'clock)
+                0.0f to Color.Transparent,
+                0.5f to gradientColors.first(),
+                0.75f to gradientColors[2],
+                1.0f to gradientColors.last(),
                 center = Offset(size.width / 2f, size.width / 2f)
             ),
             startAngle = 180f,

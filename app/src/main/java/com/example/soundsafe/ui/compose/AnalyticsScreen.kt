@@ -446,7 +446,7 @@ fun SoundLineGraph(
                 drawPath(
                     path = fillPath.asComposePath(),
                     brush = Brush.verticalGradient(
-                        colors = listOf(graphColor.copy(alpha = 0.2f), Color.Transparent),
+                        colors = listOf(graphColor.copy(alpha = 0.5f), Color.Transparent),
                         startY = topPadding,
                         endY = topPadding + chartHeight
                     )

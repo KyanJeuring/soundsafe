@@ -120,7 +120,8 @@ fun AnalyticsScreen(
                 AnalyticsHeaderCard(
                     title = title,
                     soundLog = soundLog,
-                    selectedTimeFrame = selectedTimeFrame
+                    selectedTimeFrame = selectedTimeFrame,
+                    onInfoClick = { showInfoDialog = true }
                 )
             }
 
@@ -242,7 +243,8 @@ fun PillTimeFrameSelector(
 fun AnalyticsHeaderCard(
     title: String,
     soundLog: List<SoundRecord>,
-    selectedTimeFrame: String
+    selectedTimeFrame: String,
+    onInfoClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -257,18 +259,33 @@ fun AnalyticsHeaderCard(
         Column(
             modifier = Modifier.padding(24.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (selectedTimeFrame != "Daily") {
-                Text(
-                    text = "Showing daily averages",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (selectedTimeFrame != "Daily") {
+                        Text(
+                            text = "Showing daily averages",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                IconButton(onClick = onInfoClick) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Aggregation Info",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
             SoundLineGraph(
@@ -276,7 +293,7 @@ fun AnalyticsHeaderCard(
                 selectedTimeFrame = selectedTimeFrame,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
+                    .height(320.dp)
             )
         }
     }

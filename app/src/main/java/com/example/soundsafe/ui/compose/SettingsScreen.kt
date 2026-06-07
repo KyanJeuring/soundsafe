@@ -56,8 +56,8 @@ fun SettingsScreen(
             title = { Text("Measurement Transparency") },
             text = {
                 Text("SoundSafe uses your microphone to calculate Sound Pressure Level (SPL) in decibels.\n\n" +
-                        "• Privacy: We do not record, listen to, or store any actual audio or conversations. Only the loudness level is captured.\n" +
-                        "• Phone Calls: To protect your privacy and call quality, monitoring pauses during calls. These periods appear as 0 dB in your logs.\n" +
+                        "• Privacy: We do not record, listen to, or store any actual audio or conversations. Only the loudness level is captured.\n\n" +
+                        "• Phone Calls: To protect your privacy and call quality, monitoring pauses during calls. These periods appear as 0 dB in your logs.\n\n" +
                         "• Audio Playback: When playing music or videos on your device's speakers, the microphone may pick up this sound, resulting in higher readings.")
             },
             confirmButton = {
@@ -74,7 +74,9 @@ fun SettingsScreen(
             title = { Text("How auto-volume works") },
             text = {
                 Text("SoundSafe intelligently scales your device volume based on your surroundings:\n\n" +
-                        "• Smart Mapping: We map ambient noise from 40dB (quiet) to 90dB (loud) into a volume range of 20% to 100%.\n" +
+                        "• Smart Mapping: We map ambient noise from 40dB (quiet) to 90dB (loud) into a volume range of 20% to 100%.\n\n" +
+                        "• Sound Smoothing: The app compares new readings with your recent history. Sudden, short peaks (like a door slamming) are recognized as 'spikes' and ignored.\n\n" +
+                        "• Gradual Adjustment: To prevent jarring jumps, volume shifts smoothly. It only reaches a new level once it confirms your environment has truly changed.\n\n" +
                         "• Manual Priority: If you manually adjust your volume, auto-adjustment pauses for that stream to give you full control.")
             },
             confirmButton = {
@@ -91,7 +93,7 @@ fun SettingsScreen(
             title = { Text("Battery & Performance") },
             text = {
                 Text("SoundSafe is designed to be extremely lightweight:\n\n" +
-                        "• Burst Sampling: We only activate the microphone for 2 seconds every minute.\n" +
+                        "• Burst Sampling: We only activate the microphone for 2 seconds every minute.\n\n" +
                         "• Efficient Processing: We process simple volume levels rather than complex audio, ensuring minimal impact on your battery life and CPU.")
             },
             confirmButton = {

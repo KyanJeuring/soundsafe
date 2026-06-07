@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -179,13 +180,7 @@ fun AnalyticsScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         }
-                        IconButton(onClick = { showInfoDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Aggregation Info",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        InfoIconButton(onClick = { showInfoDialog = true })
                     }
                 }
             }
@@ -209,6 +204,7 @@ fun PillTimeFrameSelector(
     onTimeFrameSelected: (String) -> Unit
 ) {
     val options = listOf("Daily", "Weekly", "Monthly")
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     Box(
         modifier = Modifier
@@ -230,8 +226,11 @@ fun PillTimeFrameSelector(
                     animationSpec = tween(durationMillis = 300),
                     label = "TabBackground"
                 )
+                val defaultTextColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                val targetTextColor = if (isSelected && isDark) LocalAccentColor.current.darkerPrimary else defaultTextColor
+
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    targetValue = targetTextColor,
                     animationSpec = tween(durationMillis = 300),
                     label = "TabText"
                 )
@@ -296,13 +295,7 @@ fun AnalyticsHeaderCard(
                         )
                     }
                 }
-                IconButton(onClick = onInfoClick) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "Aggregation Info",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                InfoIconButton(onClick = onInfoClick)
             }
             Spacer(modifier = Modifier.height(24.dp))
             SoundLineGraph(

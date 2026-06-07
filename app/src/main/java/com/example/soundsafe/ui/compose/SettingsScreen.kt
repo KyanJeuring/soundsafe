@@ -1,6 +1,8 @@
 package com.example.soundsafe.ui.compose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -25,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,6 +39,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -41,6 +49,8 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
+    selectedAccentName: String,
+    onAccentSelected: (String) -> Unit,
     isAutoMediaEnabled: Boolean,
     onAutoMediaToggle: (Boolean) -> Unit,
     isAutoRingtoneEnabled: Boolean,
@@ -115,6 +125,11 @@ fun SettingsScreen(
             onThemeSelected = onThemeSelected
         )
 
+        AccentSelectionCard(
+            selectedAccentName = selectedAccentName,
+            onAccentSelected = onAccentSelected
+        )
+
         SettingToggle(
             label = "Automatic Media Volume",
             checked = isAutoMediaEnabled,
@@ -146,6 +161,45 @@ fun SettingsScreen(
 }
 
 @Composable
+fun InfoIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val accentColor = LocalAccentColor.current
+
+    // Inverted logic to handle the cutout:
+    // The background box fills the 'i' hole, the icon tint covers the surrounding circle.
+    val circleColor = if (isDark) accentColor.darkerPrimary else MaterialTheme.colorScheme.onPrimary
+    val iconColor = MaterialTheme.colorScheme.primary
+
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(24.dp)
+        ) {
+            // Background circle to fill the "i" cutout (this will be the 'i' color)
+            Box(
+                modifier = Modifier
+                    .size(12.dp) // Sized to fill the 'i' specifically
+                    .clip(CircleShape)
+                    .background(circleColor)
+            )
+            // The Info Icon (this will be the surrounding circle color)
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Info",
+                tint = iconColor,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
 fun SettingsInfoCard(
     title: String,
     onClick: () -> Unit
@@ -172,13 +226,7 @@ fun SettingsInfoCard(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            IconButton(onClick = onClick) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Info",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+            InfoIconButton(onClick = onClick)
         }
     }
 }
@@ -242,12 +290,94 @@ fun ThemeSelectionCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccentSelectionCard(
+    selectedAccentName: String,
+    onAccentSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val currentAccent = accents.find { it.name == selectedAccentName } ?: accents.first()
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Accent Color",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedAccentName,
+                    onValueChange = {},
+                    readOnly = true,
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) currentAccent.darkPrimary else currentAccent.lightPrimary)
+                        )
+                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    accents.forEach { accent ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isDark) accent.darkPrimary else accent.lightPrimary)
+                                    )
+                                    Spacer(modifier = Modifier.size(12.dp))
+                                    Text(accent.name)
+                                }
+                            },
+                            onClick = {
+                                onAccentSelected(accent.name)
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun SettingToggle(
     label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val thumbColor = if (isDark) LocalAccentColor.current.darkerPrimary else MaterialTheme.colorScheme.onPrimary
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -272,7 +402,10 @@ fun SettingToggle(
             )
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = thumbColor
+                )
             )
         }
     }

@@ -58,6 +58,8 @@ fun SoundSafeApp(
     lastUpdatedTime: String,
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
+    selectedAccentName: String,
+    onAccentSelected: (String) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
@@ -74,7 +76,9 @@ fun SoundSafeApp(
         else -> isSystemInDarkTheme()
     }
 
-    SoundSafeTheme(darkTheme = darkTheme) {
+    val accentColor = accents.find { it.name == selectedAccentName } ?: accents.first()
+
+    SoundSafeTheme(darkTheme = darkTheme, accentColor = accentColor) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
@@ -147,6 +151,8 @@ fun SoundSafeApp(
                     SettingsScreen(
                         selectedTheme = selectedTheme,
                         onThemeSelected = onThemeSelected,
+                        selectedAccentName = selectedAccentName,
+                        onAccentSelected = onAccentSelected,
                         isAutoMediaEnabled = isAutoMediaEnabled,
                         onAutoMediaToggle = onAutoMediaToggle,
                         isAutoRingtoneEnabled = isAutoRingtoneEnabled,
@@ -166,6 +172,8 @@ fun SoundSafeAppPreview() {
         lastUpdatedTime = "12:00 PM",
         selectedTheme = "System Default",
         onThemeSelected = {},
+        selectedAccentName = "Majestic Purple",
+        onAccentSelected = {},
         isRecording = true,
         onToggleRecording = {},
         isAutoMediaEnabled = true,

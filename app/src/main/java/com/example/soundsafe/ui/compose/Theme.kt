@@ -5,12 +5,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+
+val LocalAccentColor = staticCompositionLocalOf<AccentColor> {
+    error("No AccentColor provided")
+}
 
 private val LightColorScheme = lightColorScheme(
-    primary = md_theme_light_primary,
-    onPrimary = md_theme_light_onPrimary,
-    primaryContainer = md_theme_light_primaryContainer,
-    onPrimaryContainer = md_theme_light_onPrimaryContainer,
+    primary = Color(0xFF6750A4), // Majestic Purple Light
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFEADDFF),
+    onPrimaryContainer = Color(0xFF21005D),
     secondary = md_theme_light_secondary,
     onSecondary = md_theme_light_onSecondary,
     secondaryContainer = md_theme_light_secondaryContainer,
@@ -32,17 +39,17 @@ private val LightColorScheme = lightColorScheme(
     onSurfaceVariant = md_theme_light_onSurfaceVariant,
     inverseOnSurface = md_theme_light_inverseOnSurface,
     inverseSurface = md_theme_light_inverseSurface,
-    inversePrimary = md_theme_light_inversePrimary,
-    surfaceTint = md_theme_light_surfaceTint,
+    inversePrimary = Color(0xFFD0BCFF),
+    surfaceTint = Color(0xFF6750A4),
     outlineVariant = md_theme_light_outlineVariant,
     scrim = md_theme_light_scrim,
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = md_theme_dark_primary,
-    onPrimary = md_theme_dark_onPrimary,
-    primaryContainer = md_theme_dark_primaryContainer,
-    onPrimaryContainer = md_theme_dark_onPrimaryContainer,
+    primary = Color(0xFFD0BCFF), // Majestic Purple Dark
+    onPrimary = Color(0xFF381E72),
+    primaryContainer = Color(0xFF4F378B),
+    onPrimaryContainer = Color(0xFFEADDFF),
     secondary = md_theme_dark_secondary,
     onSecondary = md_theme_dark_onSecondary,
     secondaryContainer = md_theme_dark_secondaryContainer,
@@ -64,8 +71,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = md_theme_dark_onSurfaceVariant,
     inverseOnSurface = md_theme_dark_inverseOnSurface,
     inverseSurface = md_theme_dark_inverseSurface,
-    inversePrimary = md_theme_dark_inversePrimary,
-    surfaceTint = md_theme_dark_surfaceTint,
+    inversePrimary = Color(0xFF6750A4),
+    surfaceTint = Color(0xFFD0BCFF),
     outlineVariant = md_theme_dark_outlineVariant,
     scrim = md_theme_dark_scrim,
 )
@@ -73,15 +80,35 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun SoundSafeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    accentColor: AccentColor = accents.first(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> {
+            val isLightAccent = accentColor.name == "Sunflower Yellow"
+            DarkColorScheme.copy(
+                primary = accentColor.darkPrimary,
+                onPrimary = if (isLightAccent) Color(0xFF212121) else Color.Black,
+                primaryContainer = accentColor.darkPrimary.copy(alpha = 0.15f),
+                onPrimaryContainer = accentColor.darkPrimary,
+                surfaceTint = accentColor.darkPrimary,
+                inversePrimary = accentColor.lightPrimary
+            )
+        }
+        else -> LightColorScheme.copy(
+            primary = accentColor.lightPrimary,
+            onPrimary = Color.White,
+            primaryContainer = accentColor.lightPrimary.copy(alpha = 0.08f),
+            onPrimaryContainer = accentColor.lightPrimary,
+            surfaceTint = accentColor.lightPrimary,
+            inversePrimary = accentColor.darkPrimary
+        )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        content = content
-    )
+    CompositionLocalProvider(LocalAccentColor provides accentColor) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content
+        )
+    }
 }

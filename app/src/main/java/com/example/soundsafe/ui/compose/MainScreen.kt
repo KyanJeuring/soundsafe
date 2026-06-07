@@ -1,5 +1,6 @@
 package com.example.soundsafe.ui.compose
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,8 +36,8 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 @Composable
 fun SoundSafeApp(
     currentDbLevel: String,
-    isDarkModeEnabled: Boolean,
-    onThemeToggle: (Boolean) -> Unit,
+    selectedTheme: String,
+    onThemeSelected: (String) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
@@ -47,7 +48,13 @@ fun SoundSafeApp(
     val navController = rememberNavController()
     val screens = listOf(Screen.Dashboard, Screen.Analytics, Screen.Settings)
 
-    SoundSafeTheme(darkTheme = isDarkModeEnabled) {
+    val darkTheme = when (selectedTheme) {
+        "Light" -> false
+        "Dark" -> true
+        else -> isSystemInDarkTheme()
+    }
+
+    SoundSafeTheme(darkTheme = darkTheme) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
@@ -99,8 +106,8 @@ fun SoundSafeApp(
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen(
-                        isDarkModeEnabled = isDarkModeEnabled,
-                        onThemeToggle = onThemeToggle,
+                        selectedTheme = selectedTheme,
+                        onThemeSelected = onThemeSelected,
                         isAutoMediaEnabled = isAutoMediaEnabled,
                         onAutoMediaToggle = onAutoMediaToggle,
                         isAutoRingtoneEnabled = isAutoRingtoneEnabled,
@@ -117,8 +124,8 @@ fun SoundSafeApp(
 fun SoundSafeAppPreview() {
     SoundSafeApp(
         currentDbLevel = "45.5",
-        isDarkModeEnabled = false,
-        onThemeToggle = {},
+        selectedTheme = "System Default",
+        onThemeSelected = {},
         isRecording = true,
         onToggleRecording = {},
         isAutoMediaEnabled = true,

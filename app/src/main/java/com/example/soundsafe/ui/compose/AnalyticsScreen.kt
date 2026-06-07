@@ -18,15 +18,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +69,28 @@ fun AnalyticsScreen(
     val selectedTimeFrame by viewModel.selectedTimeFrame.collectAsState()
     val avgDb by viewModel.avgDb.collectAsState()
     val maxDb by viewModel.maxDb.collectAsState()
+
+    var showInfoDialog by remember { mutableStateOf(false) }
+    var isLogExpanded by remember { mutableStateOf(false) }
+
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = { Text("Log Aggregation") },
+            text = {
+                Text("Detailed logs are averaged to make them easier to read:\n\n" +
+                        "• Daily: 15-minute averages\n" +
+                        "• Weekly: 1-hour averages\n" +
+                        "• Monthly: 1-day averages\n\n" +
+                        "Note: All statistics (Avg/Max) are still calculated using 100% of the raw 1-minute measurements.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfoDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -96,20 +129,57 @@ fun AnalyticsScreen(
             }
 
             item {
-                Text(
-                    text = "Detailed Log",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 16.dp),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    onClick = { isLogExpanded = !isLogExpanded }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Detailed Log",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = if (isLogExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (isLogExpanded) "Collapse" else "Expand",
+                                modifier = Modifier.padding(start = 8.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                        IconButton(onClick = { showInfoDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Aggregation Info",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             }
 
-            items(soundLog.reversed()) { record ->
-                SoundLogItem(record, selectedTimeFrame)
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+            if (isLogExpanded) {
+                items(soundLog.reversed()) { record ->
+                    SoundLogItem(record, selectedTimeFrame)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
             }
         }
     }
@@ -238,9 +308,9 @@ fun SoundLineGraph(
         val heightPx = size.height
 
         // Define Safe Drawing Zone to prevent label overlap
-        val leftPadding = 100f
+        val leftPadding = 50f
         val bottomPadding = 60f
-        val rightPadding = 20f
+        val rightPadding = 50f
         val topPadding = 20f
 
         val chartWidth = widthPx - leftPadding - rightPadding
@@ -459,7 +529,11 @@ fun SoundLogItem(record: SoundRecord, selectedTimeFrame: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val displayTime = if (selectedTimeFrame == "Daily") record.time else record.dateTime
+        val displayTime = when (selectedTimeFrame) {
+            "Daily" -> record.time
+            "Monthly" -> record.dateOnly
+            else -> record.dateTime
+        }
         Text(
             text = displayTime,
             style = MaterialTheme.typography.bodyMedium,

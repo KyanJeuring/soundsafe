@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.soundsafe.database.AppDatabase
+import com.example.soundsafe.database.Sound
 import com.example.soundsafe.ui.compose.SoundRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,30 +22,49 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
     private val _selectedTimeFrame = MutableStateFlow("Daily")
     val selectedTimeFrame: StateFlow<String> = _selectedTimeFrame
 
-    val soundLog: StateFlow<List<SoundRecord>> = _selectedTimeFrame
+    private val rawSounds: StateFlow<List<Sound>> = _selectedTimeFrame
         .flatMapLatest { timeFrame ->
             val (start, end) = getRangeForTimeFrame(timeFrame)
             soundDao.getSoundsInRange(start, end)
         }
-        .map { sounds ->
-            sounds.map { SoundRecord(it.timestamp, it.decibels) }
-        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val avgDb: StateFlow<Double> = soundLog.map { log ->
-        if (log.isNotEmpty()) log.map { it.dbLevel }.average() else 0.0
+    val soundLog: StateFlow<List<SoundRecord>> = combine(rawSounds, _selectedTimeFrame) { sounds, timeFrame ->
+        aggregateLogs(sounds, timeFrame)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val avgDb: StateFlow<Double> = rawSounds.map { log ->
+        if (log.isNotEmpty()) log.map { it.decibels }.average() else 0.0
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    val maxDb: StateFlow<Double> = soundLog.map { log ->
-        if (log.isNotEmpty()) log.maxOf { it.dbLevel } else 0.0
+    val maxDb: StateFlow<Double> = rawSounds.map { log ->
+        if (log.isNotEmpty()) log.maxOf { it.decibels } else 0.0
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    val minDb: StateFlow<Double> = soundLog.map { log ->
-        if (log.isNotEmpty()) log.minOf { it.dbLevel } else 0.0
+    val minDb: StateFlow<Double> = rawSounds.map { log ->
+        if (log.isNotEmpty()) log.minOf { it.decibels } else 0.0
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     fun onTimeFrameSelected(timeFrame: String) {
         _selectedTimeFrame.value = timeFrame
+    }
+
+    private fun aggregateLogs(sounds: List<Sound>, timeFrame: String): List<SoundRecord> {
+        if (sounds.isEmpty()) return emptyList()
+
+        val interval = when (timeFrame) {
+            "Daily" -> 15 * 60 * 1000L // 15 minutes
+            "Weekly" -> 60 * 60 * 1000L // 1 hour
+            "Monthly" -> 24 * 60 * 60 * 1000L // 1 day
+            else -> 15 * 60 * 1000L
+        }
+
+        return sounds.groupBy { it.timestamp / interval }
+            .map { (key, group) ->
+                val avgDb = group.map { it.decibels }.average()
+                SoundRecord(key * interval, avgDb)
+            }
+            .sortedBy { it.timestamp }
     }
 
     private fun getRangeForTimeFrame(timeFrame: String): Pair<Long, Long> {

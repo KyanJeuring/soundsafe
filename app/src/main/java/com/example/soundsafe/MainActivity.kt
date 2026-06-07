@@ -24,7 +24,7 @@ import com.example.soundsafe.ui.compose.SoundSafeApp
 class MainActivity : ComponentActivity() {
 
     // UI States
-    private var isDarkModeEnabled by mutableStateOf(false)
+    private var selectedTheme by mutableStateOf("System Default")
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
 
@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
-        isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
+        selectedTheme = prefs.getString("selected_theme", "System Default") ?: "System Default"
 
         setContent {
             val isRecording by SoundMonitoringService.isRecording.collectAsState()
@@ -70,10 +70,10 @@ class MainActivity : ComponentActivity() {
 
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
-                isDarkModeEnabled = isDarkModeEnabled,
-                onThemeToggle = {
-                    isDarkModeEnabled = it
-                    prefs.edit().putBoolean("dark_mode_enabled", it).apply()
+                selectedTheme = selectedTheme,
+                onThemeSelected = {
+                    selectedTheme = it
+                    prefs.edit().putString("selected_theme", it).apply()
                 },
                 isRecording = isRecording,
                 onToggleRecording = { toggleRecording(isRecording) },
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("soundsafe_prefs", Context.MODE_PRIVATE)
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
-        isDarkModeEnabled = prefs.getBoolean("dark_mode_enabled", false)
+        selectedTheme = prefs.getString("selected_theme", "System Default") ?: "System Default"
     }
 
     override fun onPause() {

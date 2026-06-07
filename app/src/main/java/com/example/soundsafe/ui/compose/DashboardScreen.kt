@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +49,7 @@ fun DashboardScreen(
     // Determine effective dB value based on recording state
     val effectiveDbText = if (isRecording) currentDbLevel else "0"
     val dbValue = if (isRecording) (currentDbLevel.toDoubleOrNull() ?: 0.0) else 0.0
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     Column(
         modifier = Modifier
@@ -89,7 +91,11 @@ fun DashboardScreen(
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                contentColor = if (isRecording) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary
+                contentColor = when {
+                    isRecording -> MaterialTheme.colorScheme.onError
+                    isDark -> LocalAccentColor.current.darkerPrimary
+                    else -> MaterialTheme.colorScheme.onPrimary
+                }
             ),
             elevation = ButtonDefaults.buttonElevation(
                 defaultElevation = 4.dp,

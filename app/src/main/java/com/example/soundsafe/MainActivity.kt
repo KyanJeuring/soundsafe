@@ -20,11 +20,15 @@ import androidx.core.content.ContextCompat
 import com.example.soundsafe.audio.SoundMeasurementStore
 import com.example.soundsafe.audio.SoundMonitoringService
 import com.example.soundsafe.ui.compose.SoundSafeApp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
     // UI States
     private var selectedTheme by mutableStateOf("System Default")
+    private var selectedAccentName by mutableStateOf("Majestic Purple")
     private var isAutoMediaEnabled by mutableStateOf(false)
     private var isAutoRingtoneEnabled by mutableStateOf(false)
 
@@ -58,6 +62,14 @@ class MainActivity : ComponentActivity() {
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
         selectedTheme = prefs.getString("selected_theme", "System Default") ?: "System Default"
 
+        // Load accent and migrate if necessary
+        var accent = prefs.getString("selected_accent", "Majestic Purple") ?: "Majestic Purple"
+        if (accent == "Deep Purple") {
+            accent = "Majestic Purple"
+            prefs.edit().putString("selected_accent", accent).apply()
+        }
+        selectedAccentName = accent
+
         setContent {
             val isRecording by SoundMonitoringService.isRecording.collectAsState()
             val measurements by SoundMeasurementStore.measurements.collectAsState()
@@ -68,12 +80,24 @@ class MainActivity : ComponentActivity() {
                 } else "0.0"
             }
 
+            val lastUpdatedTime = remember(measurements) {
+                if (measurements.isNotEmpty()) {
+                    SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(measurements.last().timestamp))
+                } else ""
+            }
+
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
+                lastUpdatedTime = lastUpdatedTime,
                 selectedTheme = selectedTheme,
                 onThemeSelected = {
                     selectedTheme = it
                     prefs.edit().putString("selected_theme", it).apply()
+                },
+                selectedAccentName = selectedAccentName,
+                onAccentSelected = {
+                    selectedAccentName = it
+                    prefs.edit().putString("selected_accent", it).apply()
                 },
                 isRecording = isRecording,
                 onToggleRecording = { toggleRecording(isRecording) },
@@ -112,6 +136,13 @@ class MainActivity : ComponentActivity() {
         isAutoMediaEnabled = prefs.getBoolean("auto_media_enabled", false)
         isAutoRingtoneEnabled = prefs.getBoolean("auto_ring_enabled", false)
         selectedTheme = prefs.getString("selected_theme", "System Default") ?: "System Default"
+
+        var accent = prefs.getString("selected_accent", "Majestic Purple") ?: "Majestic Purple"
+        if (accent == "Deep Purple") {
+            accent = "Majestic Purple"
+            prefs.edit().putString("selected_accent", accent).apply()
+        }
+        selectedAccentName = accent
     }
 
     override fun onPause() {

@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +72,7 @@ fun AnalyticsScreen(
     val maxDb by viewModel.maxDb.collectAsState()
 
     var showInfoDialog by remember { mutableStateOf(false) }
+    var showGraphInfoDialog by remember { mutableStateOf(false) }
     var isLogExpanded by remember { mutableStateOf(false) }
 
     if (showInfoDialog) {
@@ -86,6 +88,22 @@ fun AnalyticsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showInfoDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
+
+    if (showGraphInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showGraphInfoDialog = false },
+            title = { Text("About the Graph") },
+            text = {
+                Text("This graph shows your sound exposure trend using averaged data points to make the history easier to read.\n\n" +
+                        "Note: The 'MAX LEVEL' card below shows the absolute highest peak measured, which may be higher than any single point on this averaged graph line.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showGraphInfoDialog = false }) {
                     Text("Got it")
                 }
             }
@@ -120,7 +138,8 @@ fun AnalyticsScreen(
                 AnalyticsHeaderCard(
                     title = title,
                     soundLog = soundLog,
-                    selectedTimeFrame = selectedTimeFrame
+                    selectedTimeFrame = selectedTimeFrame,
+                    onInfoClick = { showGraphInfoDialog = true }
                 )
             }
 
@@ -161,13 +180,7 @@ fun AnalyticsScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                         }
-                        IconButton(onClick = { showInfoDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = "Aggregation Info",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        InfoIconButton(onClick = { showInfoDialog = true })
                     }
                 }
             }
@@ -191,6 +204,7 @@ fun PillTimeFrameSelector(
     onTimeFrameSelected: (String) -> Unit
 ) {
     val options = listOf("Daily", "Weekly", "Monthly")
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     Box(
         modifier = Modifier
@@ -212,8 +226,11 @@ fun PillTimeFrameSelector(
                     animationSpec = tween(durationMillis = 300),
                     label = "TabBackground"
                 )
+                val defaultTextColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                val targetTextColor = if (isSelected && isDark) LocalAccentColor.current.darkerPrimary else defaultTextColor
+
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    targetValue = targetTextColor,
                     animationSpec = tween(durationMillis = 300),
                     label = "TabText"
                 )
@@ -242,7 +259,8 @@ fun PillTimeFrameSelector(
 fun AnalyticsHeaderCard(
     title: String,
     soundLog: List<SoundRecord>,
-    selectedTimeFrame: String
+    selectedTimeFrame: String,
+    onInfoClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -257,18 +275,27 @@ fun AnalyticsHeaderCard(
         Column(
             modifier = Modifier.padding(24.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (selectedTimeFrame != "Daily") {
-                Text(
-                    text = "Showing daily averages",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (selectedTimeFrame != "Daily") {
+                        Text(
+                            text = "Showing daily averages",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                InfoIconButton(onClick = onInfoClick)
             }
             Spacer(modifier = Modifier.height(24.dp))
             SoundLineGraph(
@@ -446,7 +473,7 @@ fun SoundLineGraph(
                 drawPath(
                     path = fillPath.asComposePath(),
                     brush = Brush.verticalGradient(
-                        colors = listOf(graphColor.copy(alpha = 0.2f), Color.Transparent),
+                        colors = listOf(graphColor.copy(alpha = 0.5f), Color.Transparent),
                         startY = topPadding,
                         endY = topPadding + chartHeight
                     )

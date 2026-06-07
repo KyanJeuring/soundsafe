@@ -55,8 +55,11 @@ sealed class Screen(
 @Composable
 fun SoundSafeApp(
     currentDbLevel: String,
+    lastUpdatedTime: String,
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
+    selectedAccentName: String,
+    onAccentSelected: (String) -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
     isAutoMediaEnabled: Boolean,
@@ -73,7 +76,9 @@ fun SoundSafeApp(
         else -> isSystemInDarkTheme()
     }
 
-    SoundSafeTheme(darkTheme = darkTheme) {
+    val accentColor = accents.find { it.name == selectedAccentName } ?: accents.first()
+
+    SoundSafeTheme(darkTheme = darkTheme, accentColor = accentColor) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
@@ -134,6 +139,7 @@ fun SoundSafeApp(
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         currentDbLevel = currentDbLevel,
+                        lastUpdatedTime = lastUpdatedTime,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording
                     )
@@ -145,6 +151,8 @@ fun SoundSafeApp(
                     SettingsScreen(
                         selectedTheme = selectedTheme,
                         onThemeSelected = onThemeSelected,
+                        selectedAccentName = selectedAccentName,
+                        onAccentSelected = onAccentSelected,
                         isAutoMediaEnabled = isAutoMediaEnabled,
                         onAutoMediaToggle = onAutoMediaToggle,
                         isAutoRingtoneEnabled = isAutoRingtoneEnabled,
@@ -161,8 +169,11 @@ fun SoundSafeApp(
 fun SoundSafeAppPreview() {
     SoundSafeApp(
         currentDbLevel = "45.5",
+        lastUpdatedTime = "12:00 PM",
         selectedTheme = "System Default",
         onThemeSelected = {},
+        selectedAccentName = "Majestic Purple",
+        onAccentSelected = {},
         isRecording = true,
         onToggleRecording = {},
         isAutoMediaEnabled = true,

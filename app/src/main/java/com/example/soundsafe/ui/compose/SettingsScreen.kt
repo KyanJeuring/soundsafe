@@ -53,11 +53,12 @@ fun SettingsScreen(
     if (showTransparencyDialog) {
         AlertDialog(
             onDismissRequest = { showTransparencyDialog = false },
-            title = { Text("How we measure sound") },
+            title = { Text("Measurement Transparency") },
             text = {
                 Text("SoundSafe uses your microphone to calculate Sound Pressure Level (SPL) in decibels.\n\n" +
                         "• Privacy: We do not record, listen to, or store any actual audio or conversations. Only the loudness level is captured.\n" +
-                        "• Frequency: Measurements are taken once every minute. This provides a detailed history of your exposure while being very efficient for your battery.")
+                        "• Phone Calls: To protect your privacy and call quality, monitoring pauses during calls. These periods appear as 0 dB in your logs.\n" +
+                        "• Audio Playback: When playing music or videos on your device's speakers, the microphone may pick up this sound, resulting in higher readings.")
             },
             confirmButton = {
                 TextButton(onClick = { showTransparencyDialog = false }) {

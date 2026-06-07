@@ -71,6 +71,7 @@ fun AnalyticsScreen(
     val maxDb by viewModel.maxDb.collectAsState()
 
     var showInfoDialog by remember { mutableStateOf(false) }
+    var showGraphInfoDialog by remember { mutableStateOf(false) }
     var isLogExpanded by remember { mutableStateOf(false) }
 
     if (showInfoDialog) {
@@ -86,6 +87,22 @@ fun AnalyticsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showInfoDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
+
+    if (showGraphInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showGraphInfoDialog = false },
+            title = { Text("About the Graph") },
+            text = {
+                Text("This graph shows your sound exposure trend using averaged data points to make the history easier to read.\n\n" +
+                        "Note: The 'MAX LEVEL' card below shows the absolute highest peak measured, which may be higher than any single point on this averaged graph line.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showGraphInfoDialog = false }) {
                     Text("Got it")
                 }
             }
@@ -121,7 +138,7 @@ fun AnalyticsScreen(
                     title = title,
                     soundLog = soundLog,
                     selectedTimeFrame = selectedTimeFrame,
-                    onInfoClick = { showInfoDialog = true }
+                    onInfoClick = { showGraphInfoDialog = true }
                 )
             }
 
@@ -293,7 +310,7 @@ fun AnalyticsHeaderCard(
                 selectedTimeFrame = selectedTimeFrame,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(320.dp)
+                    .height(250.dp)
             )
         }
     }

@@ -55,6 +55,7 @@ sealed class Screen(
 @Composable
 fun SoundSafeApp(
     currentDbLevel: String,
+    lastUpdatedTime: String,
     selectedTheme: String,
     onThemeSelected: (String) -> Unit,
     isRecording: Boolean,
@@ -134,6 +135,7 @@ fun SoundSafeApp(
                 composable(Screen.Dashboard.route) {
                     DashboardScreen(
                         currentDbLevel = currentDbLevel,
+                        lastUpdatedTime = lastUpdatedTime,
                         isRecording = isRecording,
                         onToggleRecording = onToggleRecording
                     )
@@ -161,6 +163,7 @@ fun SoundSafeApp(
 fun SoundSafeAppPreview() {
     SoundSafeApp(
         currentDbLevel = "45.5",
+        lastUpdatedTime = "12:00 PM",
         selectedTheme = "System Default",
         onThemeSelected = {},
         isRecording = true,

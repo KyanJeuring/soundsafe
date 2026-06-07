@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun DashboardScreen(
     currentDbLevel: String,
+    lastUpdatedTime: String,
     isRecording: Boolean,
     onToggleRecording: () -> Unit
 ) {
@@ -67,6 +71,14 @@ fun DashboardScreen(
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.displayLarge
             )
+
+            if (isRecording && lastUpdatedTime.isNotEmpty()) {
+                Text(
+                    text = "Last updated: $lastUpdatedTime",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
         }
 
         Button(
@@ -161,6 +173,7 @@ fun SoundGauge(
 fun DashboardPreview() {
     DashboardScreen(
         currentDbLevel = "65.2",
+        lastUpdatedTime = "12:00 PM",
         isRecording = true,
         onToggleRecording = {}
     )

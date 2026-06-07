@@ -20,6 +20,9 @@ import androidx.core.content.ContextCompat
 import com.example.soundsafe.audio.SoundMeasurementStore
 import com.example.soundsafe.audio.SoundMonitoringService
 import com.example.soundsafe.ui.compose.SoundSafeApp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -68,8 +71,15 @@ class MainActivity : ComponentActivity() {
                 } else "0.0"
             }
 
+            val lastUpdatedTime = remember(measurements) {
+                if (measurements.isNotEmpty()) {
+                    SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(measurements.last().timestamp))
+                } else ""
+            }
+
             SoundSafeApp(
                 currentDbLevel = currentDbLevel,
+                lastUpdatedTime = lastUpdatedTime,
                 selectedTheme = selectedTheme,
                 onThemeSelected = {
                     selectedTheme = it

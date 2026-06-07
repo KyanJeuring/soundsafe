@@ -229,6 +229,10 @@ fun SoundLineGraph(
     val maxRecord = soundLog.maxOfOrNull { it.dbLevel } ?: 0.0
     val maxYLimit = maxOf(100.0, maxRecord + 10.0).toFloat()
 
+    val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val warningLineColor = Color(0xFFF44336).copy(alpha = 0.6f)
+    val warningTextColor = Color(0xFFF44336)
+
     Canvas(modifier = modifier) {
         val widthPx = size.width
         val heightPx = size.height
@@ -242,19 +246,21 @@ fun SoundLineGraph(
         val chartWidth = widthPx - leftPadding - rightPadding
         val chartHeight = heightPx - bottomPadding - topPadding
 
-        // 1. Draw Horizontal Grid Lines and Y-Axis Labels
-        val yLabels = listOf(0, 40, 65, 85, maxYLimit.toInt())
-        yLabels.distinct().forEach { db ->
+        // 1. Draw 10-Step Y-Axis Labels and Horizontal Grid Lines
+        val yAxisIncrements = (0..100 step 10).toList()
+        yAxisIncrements.forEach { db ->
             val yPos = topPadding + chartHeight - ((db / maxYLimit) * chartHeight)
             val textLayout = textMeasurer.measure(db.toString(), style = labelStyle)
 
+            // Draw Label
             drawText(
                 textLayoutResult = textLayout,
                 topLeft = Offset(leftPadding - textLayout.size.width - 15f, yPos - textLayout.size.height / 2f)
             )
 
+            // Draw Subtle Horizontal Grid Line
             drawLine(
-                color = axisColor.copy(alpha = 0.1f),
+                color = gridLineColor,
                 start = Offset(leftPadding, yPos),
                 end = Offset(leftPadding + chartWidth, yPos),
                 strokeWidth = 1f
@@ -262,6 +268,7 @@ fun SoundLineGraph(
         }
 
         // 2. Draw X-Axis Labels
+        val calendar = Calendar.getInstance()
         when (selectedTimeFrame) {
             "Daily" -> {
                 val timeLabels = listOf("12 AM", "6 AM", "12 PM", "6 PM", "12 AM")
@@ -286,7 +293,6 @@ fun SoundLineGraph(
                 }
             }
             "Monthly" -> {
-                val calendar = Calendar.getInstance()
                 val totalDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
                 val monthLabels = listOf(1, 10, 20, totalDays)
                 monthLabels.forEach { day ->
@@ -303,11 +309,16 @@ fun SoundLineGraph(
         // 3. Draw Warning Line (85dB) - Fixed Red
         val warningY = topPadding + chartHeight - ((85f / maxYLimit) * chartHeight)
         drawLine(
-            color = Color(0xFFF44336).copy(alpha = 0.4f),
+            color = warningLineColor,
             start = Offset(leftPadding, warningY),
             end = Offset(leftPadding + chartWidth, warningY),
-            strokeWidth = 2f,
+            strokeWidth = 2.5f,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f))
+        )
+        val warningLabelLayout = textMeasurer.measure("Warning (85 dB)", style = TextStyle(color = warningTextColor, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+        drawText(
+            textLayoutResult = warningLabelLayout,
+            topLeft = Offset(leftPadding + chartWidth - warningLabelLayout.size.width - 5f, warningY - warningLabelLayout.size.height - 2f)
         )
 
         // 4. Plot Data

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Entire cluster grouped for absolute centering and safe zone adherence -->
+    <!-- The safe zone is (18,18) to (90,90) -->
+    <group
+        android:name="icon_cluster"
+        android:translateX="0"
+        android:translateY="1.5">
+
+        <!-- Component B: The Gradient Arch -->
+        <!-- Center (54, 52), Radius 32 -->
+        <path
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M38,79.5 A32,32 0 1 1 70,79.5">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:startX="22"
+                    android:startY="52"
+                    android:endX="86"
+                    android:endY="52"
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#4CAF50" /> <!-- Green -->
+                    <item android:offset="0.5" android:color="#FFEB3B" /> <!-- Yellow -->
+                    <item android:offset="1.0" android:color="#F44336" /> <!-- Red -->
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Component A: The Central Audio Wave (7 Bars) -->
+        <!-- Center X=54, Center Y=50. Pill shapes. -->
+        <!-- Bar 1 (Far Left): Green -->
+        <path android:fillColor="#4CAF50" android:pathData="M34,47 a2,2 0 0 1 4,0 v10 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 2: Green -->
+        <path android:fillColor="#8BC34A" android:pathData="M40,42 a2,2 0 0 1 4,0 v20 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 3: Yellow -->
+        <path android:fillColor="#FFEB3B" android:pathData="M46,37 a2,2 0 0 1 4,0 v30 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 4 (Center): Yellow (Tallest) -->
+        <path android:fillColor="#FFEB3B" android:pathData="M52,32 a2,2 0 0 1 4,0 v40 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 5: Orange -->
+        <path android:fillColor="#FF9800" android:pathData="M58,37 a2,2 0 0 1 4,0 v30 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 6: Orange -->
+        <path android:fillColor="#F44336" android:pathData="M64,42 a2,2 0 0 1 4,0 v20 a2,2 0 0 1 -4,0 z" />
+        <!-- Bar 7 (Far Right): Red -->
+        <path android:fillColor="#F44336" android:pathData="M70,47 a2,2 0 0 1 4,0 v10 a2,2 0 0 1 -4,0 z" />
+
+        <!-- Component C: The 'Listening Ear' Emblem -->
+        <!-- Shifted up on Y-axis to sit securely inside the arch -->
+
+        <!-- Ear Outline -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:strokeLineCap="round"
+            android:pathData="M54,77 c-2.5,0 -4.5,2 -4.5,4.5 s2,4.5 4.5,4.5 s4.5,-2 4.5,-4.5 c0,-2.5 -2,-4.5 -4.5,-4.5 z M54,77 c0.8,-3 3,-5 3,-8 c0,-2.5 -1.5,-4.5 -4.5,-4.5 s-4.5,2 -4.5,4.5" />
+
+        <!-- Question Mark -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M53.5,69 c0,-1 1,-2 2,-2 s2,1 2,2 c0,0.8 -0.8,1.2 -0.8,1.6 v1 h-1 v-1 c0,-0.8 0.8,-0.8 0.8,-1.6 s-0.4,-0.8 -0.8,-0.8 s-0.8,0.4 -0.8,0.8 h-0.8 z M53.5,73 h1 v1 h-1 z" />
+
+        <!-- Acoustic Waves (Grey) -->
+        <path
+            android:strokeColor="#6B7280"
+            android:strokeWidth="1"
+            android:strokeLineCap="round"
+            android:pathData="M46,79 c-1,1 -1.5,3 -1,5 M43,77 c-2,2 -2.5,5 -1.5,8" />
+        <path
+            android:strokeColor="#6B7280"
+            android:strokeWidth="1"
+            android:strokeLineCap="round"
+            android:pathData="M62,79 c1,1 1.5,3 1,5 M65,77 c2,2 2.5,5 1.5,8" />
+
+    </group>
+</vector>

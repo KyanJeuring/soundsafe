@@ -1,0 +1,206 @@
+package com.example.soundsafe.audio
+
+import android.Manifest
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.content.Intent
+import android.media.AudioManager
+import android.os.Build
+import android.os.IBinder
+import android.util.Log
+import androidx.annotation.RequiresPermission
+import androidx.core.app.NotificationCompat
+import com.example.soundsafe.R
+import com.example.soundsafe.database.AppDatabase
+import com.example.soundsafe.database.Sound
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+class SoundMonitoringService : Service() {
+
+    init {
+        Log.d("SoundMonitoring", "SoundMonitoringService CLASS INITIALIZED")
+    }
+
+    private var decibelMeter: DecibelMeter? = null
+    private var volumeController: VolumeController? = null
+    private val soundSmoother = SoundSmoother()
+    private val environmentClassifier = SoundEnvironmentClassifier()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    companion object {
+        const val ACTION_STOP_RECORDING =
+            "com.example.soundsafe.audio.action.STOP_RECORDING"
+        const val ACTION_RESUME_RECORDING =
+            "com.example.soundsafe.audio.action.RESUME_RECORDING"
+        const val ACTION_AUTO_MEDIA_DISABLED =
+            "com.example.soundsafe.audio.action.AUTO_MEDIA_DISABLED"
+        const val ACTION_AUTO_RING_DISABLED =
+            "com.example.soundsafe.audio.action.AUTO_RING_DISABLED"
+        private const val NOTIFICATION_ID = 1
+
+        private val _isRecording = MutableStateFlow(false)
+        val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
+
+        private val _isServiceRunning = MutableStateFlow(false)
+        val isServiceRunning: StateFlow<Boolean> = _isServiceRunning.asStateFlow()
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+
+        _isServiceRunning.value = true
+
+        createNotificationChannel()
+
+        volumeController = VolumeController(this) { streamType ->
+            val action = when (streamType) {
+                AudioManager.STREAM_MUSIC -> ACTION_AUTO_MEDIA_DISABLED
+                AudioManager.STREAM_RING -> ACTION_AUTO_RING_DISABLED
+                else -> null
+            }
+            action?.let {
+                val intent = Intent(it).apply {
+                    setPackage(packageName)
+                }
+                sendBroadcast(intent)
+            }
+        }
+
+        decibelMeter = DecibelMeter(
+            context = this,
+            sampleDurationSeconds = 2,
+            sampleIntervalSeconds = 58
+        ) { rawDb ->
+
+            val smoothedDb = soundSmoother.smooth(rawDb)
+            val environment = environmentClassifier.classify(smoothedDb)
+
+            SoundMeasurementStore.addMeasurement(
+                rawDecibels = rawDb,
+                smoothedDecibels = smoothedDb,
+                environment = environment
+            )
+            volumeController?.adjustVolume(smoothedDb)
+
+            serviceScope.launch {
+                try {
+                    AppDatabase.getDatabase(applicationContext).soundDao().insert(Sound(decibels = smoothedDb))
+                    Log.d(
+                        "SoundMonitoring",
+                        "Sound level: raw %.1f dB, smoothed %.1f dB, %s".format(
+                            rawDb,
+                            smoothedDb,
+                            environment.displayName
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e("SoundMonitoring", "Error saving sound level", e)
+                }
+            }
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+
+        when (intent?.action) {
+            ACTION_STOP_RECORDING -> stopRecording()
+            ACTION_RESUME_RECORDING -> resumeRecording()
+            else -> resumeRecording()
+        }
+
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+
+        decibelMeter?.stop()
+        decibelMeter = null
+        volumeController?.unregister()
+        volumeController = null
+        _isRecording.value = false
+        _isServiceRunning.value = false
+        serviceScope.cancel()
+
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
+    }
+
+    private fun createNotification(): Notification {
+
+        val contentText =
+            if (_isRecording.value) {
+                "Checking sound level in the background"
+            } else {
+                "Recording is paused"
+            }
+
+        return NotificationCompat.Builder(
+            this,
+            "sound_monitoring"
+        )
+            .setContentTitle(
+                "SoundSafe is monitoring sound"
+            )
+            .setContentText(contentText)
+            .setSmallIcon(
+                R.drawable.ic_launcher_foreground
+            )
+            .setOngoing(true)
+            .build()
+    }
+
+    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
+    private fun resumeRecording() {
+
+        decibelMeter?.start()
+        _isRecording.value = true
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification()
+        )
+    }
+
+    private fun stopRecording() {
+
+        decibelMeter?.stop()
+        soundSmoother.reset()
+        environmentClassifier.reset()
+        _isRecording.value = false
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification()
+        )
+    }
+
+    private fun createNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            val channel = NotificationChannel(
+                "sound_monitoring",
+                "Sound monitoring",
+                NotificationManager.IMPORTANCE_LOW
+            )
+
+            val manager =
+                getSystemService(
+                    NotificationManager::class.java
+                )
+
+            manager.createNotificationChannel(channel)
+        }
+    }
+}

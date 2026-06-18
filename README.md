@@ -50,6 +50,12 @@ SoundSafe requires the following permissions:
 3. Sync Gradle and build the project.
 4. Run the `app` module on your device.
 
+## Diagrams
+The diagrams can be found in the following locations:
+
+- ./Diagrams/ActivityDiagram.pdf
+- ./Diagrams/UseCaseDiagram.pdf
+
 ## Usage
 
 1. **Grant Permissions**: Upon first launch, grant the requested audio and notification permissions.
